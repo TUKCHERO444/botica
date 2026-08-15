@@ -1,0 +1,56 @@
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+import tailwindcss from '@tailwindcss/vite';
+
+export default defineConfig({
+    plugins: [
+        laravel({
+            input: [
+                'resources/css/app.css',
+                'resources/js/app.js',
+                'resources/js/public/tienda/catalogo.js',
+                'resources/js/public/tienda/productos-slider.js',
+                'resources/js/admin/categorias/index.js',
+                'resources/js/admin/marcas/index.js',
+                'resources/js/admin/proveedores/index.js',
+                'resources/js/admin/clientes/index.js',
+                'resources/js/admin/servicios/index.js',
+                'resources/js/admin/atenciones/index.js',
+                'resources/js/admin/atenciones/create.js',
+                'resources/js/admin/atenciones/edit.js',
+                'resources/js/admin/productos/index.js',
+                'resources/js/admin/productos/create.js',
+                'resources/js/admin/productos/edit.js',
+                'resources/js/admin/ventas/index.js',
+                'resources/js/admin/ventas/create.js',
+                'resources/js/admin/ventas/edit.js',
+                'resources/js/admin/sliders/index.js',
+                'resources/js/admin/banners/index.js',
+                'resources/js/admin/portada-categorias/index.js',
+                'resources/js/admin/promociones/index.js',
+                'resources/js/admin/combos/index.js',
+                'resources/js/admin/ingresos/index.js',
+                'resources/js/admin/ingresos/create.js',
+                'resources/js/admin/ingresos/edit.js',
+                'resources/js/admin/dashboard/index.js',
+                'resources/js/admin/caja/index.js',
+                'resources/js/admin/sidebar.js',
+                'resources/js/public/tienda/productos.js',
+                'resources/js/public/menu-toggle.js',
+                'resources/js/public/navbar-search.js',
+                'resources/js/public/footer.js',
+                'resources/js/public/header-text.js',
+                'resources/js/public/tienda/galeria.js',
+                'resources/js/public/carrito.js',
+                'resources/js/admin/header-text/index.js',
+            ],
+            refresh: true,
+        }),
+        tailwindcss(),
+    ],
+    server: {
+        watch: {
+            ignored: ['**/storage/framework/views/**'],
+        },
+    },
+});

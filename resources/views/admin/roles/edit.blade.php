@@ -1,0 +1,40 @@
+<form action="{{ route('admin.roles.update', $role->id) }}" method="POST" class="p-6">
+    @csrf
+    @method('PUT')
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-bold text-stone-800">Editar rol</h2>
+        <button type="button" data-close-modal class="text-stone-400 hover:text-stone-600 p-1">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-stone-700 mb-1">Nombre del rol</label>
+            <input type="text" name="name" value="{{ $role->name }}" required maxlength="255"
+                class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-stone-700 mb-3">Módulos con acceso</label>
+            <div class="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto">
+                @foreach ($permisos as $perm)
+                    <label class="flex items-center gap-2 text-sm text-stone-700 p-2 rounded-lg hover:bg-stone-50 cursor-pointer">
+                        <input type="checkbox" name="permissions[]" value="{{ $perm->name }}"
+                            class="rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+                            {{ in_array($perm->name, $rolePermissions) ? 'checked' : '' }}>
+                        <span class="capitalize">{{ $perm->name }}</span>
+                    </label>
+                @endforeach
+            </div>
+        </div>
+    </div>
+
+    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-stone-200">
+        <button type="button" data-close-modal
+            class="px-4 py-2 text-sm text-stone-600 hover:text-stone-800 transition">Cancelar</button>
+        <button type="submit"
+            class="px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition">Actualizar</button>
+    </div>
+</form>

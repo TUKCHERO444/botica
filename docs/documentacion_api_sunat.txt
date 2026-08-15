@@ -1,0 +1,153 @@
+
+## Consuta de RUC - Basico
+
+<mark style="color:green;">`GET`</mark> `https://api.decolecta.com/v1/sunat/ruc?numero=20601030013`
+
+Endpoint para consultar información de RUC
+
+**Headers**
+
+| Name          | Value              |
+| ------------- | ------------------ |
+| Content-Type  | `application/json` |
+| Authorization | `Bearer <token>`   |
+
+El token puedes incluir en el querystring (en la url) con \&token=\<token>
+
+**Body**
+
+| Name                    | Type   | Description        |
+| ----------------------- | ------ | ------------------ |
+| `razon_social`          | string |                    |
+| `numero_documento`      | string | ruc de la empresa  |
+| `estado`                | string |                    |
+| `condicion`             | string |                    |
+| `dirección`             | string |                    |
+| `ubigeo`                | string | ubigeo segun sunat |
+| `via_tipo`              | string |                    |
+| `via_nombre`            | string |                    |
+| `zona_codigo`           | string |                    |
+| `zona_tipo`             | string |                    |
+| `numero`                | string |                    |
+| `interior`              | string |                    |
+| `lote`                  | string |                    |
+| `dpto`                  | string | departamente       |
+| `manzana`               | string |                    |
+| `kilometro`             | string |                    |
+| `distrito`              | string |                    |
+| `provincia`             | string |                    |
+| `departamento`          | string |                    |
+| `es_agente_retencion`   | bool   |                    |
+| `es_buen_contribuyente` |        |                    |
+| locales\_anexos         | List   |                    |
+
+**Response**
+
+{% tabs %}
+{% tab title="200" %}
+
+```json
+{
+	"razon_social": "REXTIE S.A.C.",
+	"numero_documento": "20601030013",
+	"estado": "ACTIVO",
+	"condicion": "HABIDO",
+	"direccion": "AV. JOSE GALVEZ BARRENECHEA NRO 566 INT. 101 URB. CORPAC ",
+	"ubigeo": "150131",
+	"via_tipo": "AV.",
+	"via_nombre": "JOSE GALVEZ BARRENECHEA",
+	"zona_codigo": "URB.",
+	"zona_tipo": "CORPAC",
+	"numero": "566",
+	"interior": "101",
+	"lote": "-",
+	"dpto": "-",
+	"manzana": "-",
+	"kilometro": "-",
+	"distrito": "SAN ISIDRO",
+	"provincia": "LIMA",
+	"departamento": "LIMA",
+	"es_agente_retencion": false,
+	"es_buen_contribuyente": false,
+	"locales_anexos": null
+}
+```
+
+{% endtab %}
+
+{% tab title="422" %}
+
+```json
+{
+  "message": "ruc no valido"
+}
+```
+
+{% endtab %}
+{% endtabs %}
+
+## Consulta de ruc avanzado
+
+<mark style="color:green;">`GET`</mark> `https://api.decolecta.com/v1/sunat/ruc/full?numero=20601030013`
+
+Consultar información adicional de una empresa
+
+**Headers**
+
+| Name          | Value              |
+| ------------- | ------------------ |
+| Content-Type  | `application/json` |
+| Authorization | `Bearer <token>`   |
+
+**Body**
+
+**Response**
+
+{% tabs %}
+{% tab title="200" %}
+
+```json
+{
+	"razon_social": "REXTIE S.A.C.",
+	"numero_documento": "20601030013",
+	"estado": "ACTIVO",
+	"condicion": "HABIDO",
+	"direccion": "AV. JOSE GALVEZ BARRENECHEA NRO 566 INT. 101 URB. CORPAC ",
+	"ubigeo": "150131",
+	"via_tipo": "AV.",
+	"via_nombre": "JOSE GALVEZ BARRENECHEA",
+	"zona_codigo": "URB.",
+	"zona_tipo": "CORPAC",
+	"numero": "566",
+	"interior": "101",
+	"lote": "-",
+	"dpto": "-",
+	"manzana": "-",
+	"kilometro": "-",
+	"distrito": "SAN ISIDRO",
+	"provincia": "LIMA",
+	"departamento": "LIMA",
+	"es_agente_retencion": false,
+	"es_buen_contribuyente": false,
+	"locales_anexos": null,
+	"tipo": "SOCIEDAD ANONIMA CERRADA",
+	"actividad_economica": "OTROS TIPOS DE INTERMEDIACION MONETARIA",
+	"numero_trabajadores": "45",
+	"tipo_facturacion": "MANUAL/COMPUTARIZADO",
+	"tipo_contabilidad": "MANUAL/COMPUTARIZADO",
+	"comercio_exterior": "SIN ACTIVIDAD"
+}
+```
+
+{% endtab %}
+
+{% tab title="400" %}
+
+```json
+{
+  "error": "Invalid request"
+}
+```
+
+{% endtab %}
+{% endtabs %}

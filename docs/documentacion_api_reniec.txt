@@ -1,0 +1,53 @@
+# RENIEC
+
+Para reniec tenemos disponible los siguientes endpoint
+
+## DNI - Consulta de datos personales
+
+<mark style="color:green;">`GET`</mark> `https://api.decolecta.com/v1/reniec/dni?numero=46027897`
+
+Extraer información de personas&#x20;
+
+**Headers**
+
+| Nombre        | Valor              |
+| ------------- | ------------------ |
+| Content-Type  | `application/json` |
+| Authorization | `Bearer <token>`   |
+
+**Body**
+
+| Nombre             | Tipo   | Descripción                 |
+| ------------------ | ------ | --------------------------- |
+| `first_name`       | string | Nombres                     |
+| `first_last_name`  | string | Apellidos paternos          |
+| `second_last_name` | string | Apellidos maternos          |
+| `document_number`  | string | Numero de DNI de la persona |
+
+**Response**
+
+{% tabs %}
+{% tab title="200" %}
+
+```json
+{
+	"first_name": "ROXANA KARINA",
+	"first_last_name": "DELGADO",
+	"second_last_name": "HUAMANI",
+	"full_name": "DELGADO HUAMANI ROXANA KARINA",
+	"document_number": "46027897"
+}
+```
+
+{% endtab %}
+
+{% tab title="400" %}
+
+```json
+{
+  "error": "Invalid request"
+}
+```
+
+{% endtab %}
+{% endtabs %}

@@ -1,0 +1,287 @@
+Implementación de Módulo Kardex de Inventario
+Contexto del Sistema
+
+El sistema ya cuenta con los siguientes módulos funcionales:
+
+Productos
+Ingresos de Inventario
+Ventas
+Atenciones
+Control de Stock
+Usuarios
+
+Actualmente el stock de los productos se incrementa mediante los Ingresos de Inventario y se reduce mediante Ventas y Atenciones que incluyan productos.
+
+Se requiere implementar un módulo de Kardex de Inventario que permita rastrear todos los movimientos de stock realizados sobre cada producto.
+
+Objetivo
+
+Crear un historial completo, automático e inmutable de movimientos de inventario.
+
+El Kardex no debe modificar el stock ni convertirse en una fuente de verdad independiente. Su función es únicamente registrar y mostrar la trazabilidad de los cambios de stock que ya ocurren en el sistema.
+
+Cada vez que el stock de un producto cambie, debe generarse automáticamente un movimiento en el Kardex.
+
+Alcance de la Primera Versión
+
+El Kardex registrará únicamente movimientos generados por:
+
+1. Ingresos de Inventario
+
+Cuando se registre un ingreso de inventario y aumente el stock de uno o varios productos.
+
+Ejemplo:
+
+Ingreso ING-000001
+
+Paracetamol +50
+Ibuprofeno +30
+
+Debe generar:
+
+Tipo: INGRESO
+Referencia: ING-000001
+Cantidad: +50
+
+para cada producto involucrado.
+
+2. Ventas
+
+Cuando una venta descuente stock.
+
+Ejemplo:
+
+Venta V-000123
+
+Paracetamol x2
+
+Debe generar:
+
+Tipo: VENTA
+Referencia: V-000123
+Cantidad: -2
+3. Atenciones
+
+Cuando una atención incluya productos que descuenten stock.
+
+Ejemplo:
+
+Atención A-000015
+
+Paracetamol x1
+Alcohol x2
+
+Debe generar movimientos individuales para cada producto.
+
+4. Edición de Operaciones
+
+Actualmente el sistema permite editar:
+
+Ingresos
+Ventas
+Atenciones
+
+Cuando una operación sea modificada:
+
+Debe recalcularse el stock como actualmente ya lo hace el sistema.
+Deben eliminarse los movimientos Kardex generados por la versión anterior de la operación.
+Deben generarse nuevamente los movimientos Kardex correspondientes a la nueva versión.
+
+El Kardex debe reflejar siempre el estado actual de las operaciones registradas.
+
+5. Eliminación de Operaciones
+
+Actualmente el sistema permite eliminar:
+
+Ingresos
+Ventas
+Atenciones
+
+Cuando una operación sea eliminada:
+
+El sistema ya revierte el stock.
+También deben eliminarse todos los movimientos Kardex asociados a dicha operación.
+
+No deben quedar registros huérfanos.
+
+Diseño de Base de Datos
+
+Crear tabla:
+
+kardex_movimientos
+
+Campos sugeridos:
+
+id
+producto_id
+usuario_id
+
+tipo_movimiento
+referencia_tipo
+referencia_id
+referencia_codigo
+
+cantidad
+
+stock_anterior
+stock_nuevo
+
+observacion
+
+created_at
+updated_at
+Descripción de Campos
+producto_id
+
+Producto afectado.
+
+usuario_id
+
+Usuario que realizó la operación original.
+
+tipo_movimiento
+
+Valores permitidos:
+
+INGRESO
+VENTA
+ATENCION
+referencia_tipo
+
+Modelo origen:
+
+Ingreso
+Venta
+Atencion
+referencia_id
+
+ID de la entidad origen.
+
+Ejemplo:
+
+venta_id = 15
+referencia_codigo
+
+Número visible de la operación.
+
+Ejemplo:
+
+ING-000001
+V-000123
+A-000015
+cantidad
+
+Movimiento realizado.
+
+Positivo:
+
++50
+
+Negativo:
+
+-2
+stock_anterior
+
+Stock antes del movimiento.
+
+Ejemplo:
+
+25
+stock_nuevo
+
+Stock luego del movimiento.
+
+Ejemplo:
+
+23
+observacion
+
+Texto opcional.
+
+Ejemplos:
+
+Ingreso de inventario
+Venta registrada
+Atención registrada
+Generación Automática
+
+Cada vez que exista código similar a:
+
+$producto->stock += $cantidad;
+
+o
+
+$producto->stock -= $cantidad;
+
+debe registrarse inmediatamente un movimiento Kardex.
+
+Ejemplo:
+
+$stockAnterior = $producto->stock;
+
+$producto->stock -= 2;
+
+$stockNuevo = $producto->stock;
+
+KardexMovimiento::create([
+    ...
+]);
+Módulo Administrativo
+
+Agregar nuevo módulo:
+
+Inventario
+ ├ Productos
+ ├ Categorías
+ ├ Marcas
+ ├ Proveedores
+ ├ Ingresos
+ └ Kardex
+
+Permiso independiente:
+
+kardex.index
+Listado Kardex
+
+Mostrar:
+
+Fecha	Producto	Tipo	Referencia	Cantidad	Stock Anterior	Stock Nuevo	Usuario
+
+Ordenado por fecha descendente.
+
+Filtros
+
+Permitir filtrar por:
+
+Producto
+Tipo de movimiento
+Usuario
+Fecha inicial
+Fecha final
+Vista por Producto
+
+Dentro del módulo Productos agregar:
+
+[Ver Kardex]
+
+Al hacer clic mostrar únicamente los movimientos del producto seleccionado.
+
+Restricciones
+Los movimientos Kardex no pueden editarse manualmente.
+Los movimientos Kardex no pueden eliminarse manualmente.
+Solo pueden generarse desde operaciones válidas del sistema.
+El Kardex es de solo lectura.
+El Kardex no debe alterar la lógica actual de stock.
+Debe integrarse respetando el funcionamiento actual de Ingresos, Ventas y Atenciones.
+Resultado Esperado
+
+El usuario debe poder seleccionar cualquier producto y conocer exactamente:
+
+Cuándo ingresó stock.
+Cuándo se vendió.
+Cuándo se utilizó en una atención.
+Quién realizó la operación.
+Cuál era el stock antes del movimiento.
+Cuál fue el stock después del movimiento.
+
+Esto permitirá auditoría, trazabilidad y control total del inventario sin modificar la lógica existente del sistema.
