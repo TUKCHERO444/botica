@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Models\LoteProducto;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 
@@ -38,11 +37,11 @@ class UpdateVentaRequest extends FormRequest
         $validator->after(function ($validator) {
             $venta = $this->route('venta');
 
-            if (!$venta || !$venta->relationLoaded('productos')) {
+            if (! $venta || ! $venta->relationLoaded('productos')) {
                 $venta->load('productos');
             }
 
-            $oldCantidades = $venta->productos->mapWithKeys(fn($p) => [
+            $oldCantidades = $venta->productos->mapWithKeys(fn ($p) => [
                 $p->id_producto => $p->pivot->cantidad,
             ]);
 
@@ -53,7 +52,9 @@ class UpdateVentaRequest extends FormRequest
                     ->where('id_producto', $p['producto_id_producto'])
                     ->first();
 
-                if (!$producto) continue;
+                if (! $producto) {
+                    continue;
+                }
 
                 $disponible = $producto->stock + ($oldCantidades[$p['producto_id_producto']] ?? 0);
 
@@ -61,19 +62,6 @@ class UpdateVentaRequest extends FormRequest
                     $validator->errors()->add(
                         "productos.{$i}.cantidad",
                         "\"{$producto->nombre}\" — Stock disponible: {$disponible}, solicitado: {$p['cantidad']}."
-                    );
-                    continue;
-                }
-
-                $lotesDisponibles = LoteProducto::where('producto_id_producto', $p['producto_id_producto'])
-                    ->where('cantidad', '>', 0)
-                    ->sum('cantidad')
-                    + ($oldCantidades[$p['producto_id_producto']] ?? 0);
-
-                if ($p['cantidad'] > $lotesDisponibles) {
-                    $validator->errors()->add(
-                        "productos.{$i}.cantidad",
-                        "\"{$producto->nombre}\" — Stock físico en lotes: {$lotesDisponibles}, solicitado: {$p['cantidad']}. Realice un ingreso para reponer inventario."
                     );
                 }
             }

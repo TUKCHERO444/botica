@@ -13,7 +13,6 @@
                 <optgroup label="Inventario">
                     <option value="inventario">Inventario</option>
                     <option value="kardex">Kardex</option>
-                    <option value="vencimientos">Vencimientos</option>
                 </optgroup>
                 <optgroup label="Finanzas">
                     <option value="caja">Caja</option>
@@ -120,25 +119,9 @@
                 <option value="salida">Salida</option>
             </select>
         </div>
-
-        <div class="filtro-contextual hidden" data-reporte-show="vencimientos">
-            <label class="block text-sm font-medium text-stone-700 mb-1">Producto</label>
-            <select id="reporte-producto-vencimiento" name="producto_id" class="w-full rounded-lg border-stone-300 text-sm focus:border-emerald-500 focus:ring-emerald-500">
-                <option value="">Todos</option>
-                @foreach ($productos as $prod)
-                    <option value="{{ $prod->id_producto }}">{{ $prod->nombre }}</option>
-                @endforeach
-            </select>
-        </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-        <div class="filtro-contextual hidden" data-reporte-show="vencimientos">
-            <label class="block text-sm font-medium text-stone-700 mb-1">Rango de días (próximos)</label>
-            <input type="number" id="reporte-dias-vencimiento" name="dias_vencimiento" value="30" min="1"
-                class="w-full rounded-lg border-stone-300 text-sm focus:border-emerald-500 focus:ring-emerald-500">
-        </div>
-
         <div class="filtro-contextual hidden" data-reporte-show="clientes">
             <label class="block text-sm font-medium text-stone-700 mb-1">Top N clientes</label>
             <input type="number" id="reporte-limite-clientes" name="limite_clientes" value="20" min="1" max="100"

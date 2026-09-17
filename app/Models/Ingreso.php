@@ -32,11 +32,6 @@ class Ingreso extends Model
     public function productos()
     {
         return $this->belongsToMany(Producto::class, 'detalle_ingreso', 'ingreso_id_ingreso', 'producto_id_producto')
-            ->withPivot('cantidad', 'lote', 'fecha_vencimiento');
-    }
-
-    public function lotes()
-    {
-        return $this->hasMany(LoteProducto::class, 'ingreso_id_ingreso', 'id_ingreso');
+            ->withPivot('cantidad');
     }
 }

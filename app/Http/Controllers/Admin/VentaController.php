@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Helpers\StockHelper;
+use App\Helpers\KardexHelper;
 use App\Http\Controllers\Admin\Traits\Audita;
 use App\Http\Controllers\Admin\Traits\CacheaPanel;
 use App\Http\Controllers\Controller;
@@ -17,11 +17,12 @@ use Illuminate\Support\Facades\DB;
 
 class VentaController extends Controller
 {
-    use CacheaPanel, Audita;
+    use Audita, CacheaPanel;
 
     private function generarCorrelativo(int $idVenta): string
     {
         $sufijo = str_pad($idVenta, 8, '0', STR_PAD_LEFT);
+
         return "T001-{$sufijo}";
     }
 
@@ -31,12 +32,14 @@ class VentaController extends Controller
             return $this->getIndex('ventas', function () {
                 $ventas = Venta::with('cliente', 'user')->orderBy('id_venta', 'desc')->get();
                 $cajaAbierta = Caja::abierta()->exists();
+
                 return view('admin.ventas.index', compact('ventas', 'cajaAbierta'))->render();
             });
         }
 
         $ventas = Venta::with('cliente', 'user')->orderBy('id_venta', 'desc')->get();
         $cajaAbierta = Caja::abierta()->exists();
+
         return view('admin.ventas.full', compact('ventas', 'cajaAbierta'));
     }
 
@@ -57,6 +60,7 @@ class VentaController extends Controller
             $productos = Producto::where('estado', 1)->where('stock', '>', 0)->orderBy('nombre')->get();
             $nextId = (Venta::max('id_venta') ?? 0) + 1;
             $siguienteCorrelativo = $this->generarCorrelativo($nextId);
+
             return view('admin.ventas.create', compact('productos', 'siguienteCorrelativo'));
         }
 
@@ -66,13 +70,14 @@ class VentaController extends Controller
     public function store(StoreVentaRequest $request)
     {
         $cajaAbierta = Caja::abierta()->first();
-        if (!$cajaAbierta) {
+        if (! $cajaAbierta) {
             if ($request->ajax()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Debe abrir una caja antes de registrar una venta.',
                 ], 422);
             }
+
             return redirect()->back()->with('error', 'Debe abrir una caja antes de registrar una venta.');
         }
 
@@ -80,7 +85,7 @@ class VentaController extends Controller
 
         try {
             $venta = DB::transaction(function () use ($data, $cajaAbierta) {
-                if (empty($data['cliente_id_cliente']) && !empty($data['cliente_data'])) {
+                if (empty($data['cliente_id_cliente']) && ! empty($data['cliente_data'])) {
                     $cliente = Cliente::create([
                         'dni' => $data['cliente_data']['dni'],
                         'nombre' => $data['cliente_data']['nombre'],
@@ -94,7 +99,7 @@ class VentaController extends Controller
                     $data['cliente_id_cliente'] = $cliente->id_cliente;
                 }
 
-                $total = collect($data['productos'])->sum(fn($p) => $p['cantidad'] * $p['precio']);
+                $total = collect($data['productos'])->sum(fn ($p) => $p['cantidad'] * $p['precio']);
 
                 $venta = Venta::create([
                     'correlativo' => 'TEMP',
@@ -113,7 +118,16 @@ class VentaController extends Controller
                     ]);
 
                     $producto = Producto::findOrFail($p['producto_id_producto']);
-                    StockHelper::consumir($producto, $p['cantidad'], $venta, 'venta');
+                    $producto->decrement('stock', $p['cantidad']);
+                    KardexHelper::registrar(
+                        $producto,
+                        'VENTA',
+                        'Venta',
+                        $venta->id_venta,
+                        $venta->correlativo,
+                        -$p['cantidad'],
+                        'Venta registrada'
+                    );
                 }
 
                 CajaMovimiento::create([
@@ -135,6 +149,7 @@ class VentaController extends Controller
                     'message' => $e->getMessage(),
                 ], 422);
             }
+
             return redirect()->back()->with('error', $e->getMessage())->withInput();
         }
 
@@ -160,6 +175,7 @@ class VentaController extends Controller
             $productos = Producto::where('estado', 1)->orderBy('nombre')->get();
             $venta->load('productos', 'cliente');
             $selectedCliente = $venta->cliente;
+
             return view('admin.ventas.edit', compact('venta', 'productos', 'selectedCliente'));
         }
 
@@ -172,11 +188,15 @@ class VentaController extends Controller
 
         try {
             DB::transaction(function () use ($data, $venta) {
-                StockHelper::revertir($venta, 'venta');
+                foreach ($venta->productos as $old) {
+                    Producto::where('id_producto', $old->id_producto)
+                        ->increment('stock', $old->pivot->cantidad);
+                }
+                KardexHelper::eliminarPorReferencia('Venta', $venta->id_venta);
 
                 $venta->productos()->detach();
 
-                $total = collect($data['productos'])->sum(fn($p) => $p['cantidad'] * $p['precio']);
+                $total = collect($data['productos'])->sum(fn ($p) => $p['cantidad'] * $p['precio']);
 
                 $venta->update([
                     'total' => $total,
@@ -191,7 +211,16 @@ class VentaController extends Controller
                     ]);
 
                     $producto = Producto::findOrFail($p['producto_id_producto']);
-                    StockHelper::consumir($producto, $p['cantidad'], $venta, 'venta');
+                    $producto->decrement('stock', $p['cantidad']);
+                    KardexHelper::registrar(
+                        $producto,
+                        'VENTA',
+                        'Venta',
+                        $venta->id_venta,
+                        $venta->correlativo,
+                        -$p['cantidad'],
+                        'Venta registrada'
+                    );
                 }
 
                 $cajaAbierta = Caja::abierta()->first();
@@ -220,6 +249,7 @@ class VentaController extends Controller
                     'message' => $e->getMessage(),
                 ], 422);
             }
+
             return redirect()->back()->with('error', $e->getMessage())->withInput();
         }
 
@@ -242,7 +272,12 @@ class VentaController extends Controller
     public function destroy(Venta $venta)
     {
         DB::transaction(function () use ($venta) {
-            StockHelper::revertir($venta, 'venta');
+            foreach ($venta->productos as $old) {
+                Producto::where('id_producto', $old->id_producto)
+                    ->increment('stock', $old->pivot->cantidad);
+            }
+            KardexHelper::eliminarPorReferencia('Venta', $venta->id_venta);
+
             $venta->productos()->detach();
 
             $cajaAbierta = Caja::abierta()->first();

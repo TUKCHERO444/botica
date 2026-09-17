@@ -1,24 +1,27 @@
 <?php
 
-use App\Http\Controllers\Admin\AlertaVencimientoController;
 use App\Http\Controllers\Admin\AtencionController;
-use App\Http\Controllers\Admin\PortadaCategoriaController;
+use App\Http\Controllers\Admin\AuditoriaController;
+use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\CajaController;
 use App\Http\Controllers\Admin\CategoriaController;
 use App\Http\Controllers\Admin\ClienteController;
+use App\Http\Controllers\Admin\ComboController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\HeaderTextController;
 use App\Http\Controllers\Admin\IngresoController;
 use App\Http\Controllers\Admin\KardexController;
 use App\Http\Controllers\Admin\MarcaController;
+use App\Http\Controllers\Admin\PortadaCategoriaController;
 use App\Http\Controllers\Admin\ProductoController;
+use App\Http\Controllers\Admin\PromocionController;
 use App\Http\Controllers\Admin\ProveedorController;
+use App\Http\Controllers\Admin\ReniecController;
+use App\Http\Controllers\Admin\ReporteController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\ServicioController;
-use App\Http\Controllers\Admin\BannerController;
-use App\Http\Controllers\Admin\ComboController;
-use App\Http\Controllers\Admin\HeaderTextController;
-use App\Http\Controllers\Admin\PromocionController;
 use App\Http\Controllers\Admin\SliderController;
+use App\Http\Controllers\Admin\SunatController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VentaController;
 use Illuminate\Support\Facades\Route;
@@ -42,9 +45,9 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         ->middleware('permission:categorias')->name('admin.categorias.toggleStatus');
 
     Route::resource('categorias', CategoriaController::class)->names([
-        'index'   => 'admin.categorias.index', 'create'  => 'admin.categorias.create',
-        'store'   => 'admin.categorias.store', 'edit'    => 'admin.categorias.edit',
-        'update'  => 'admin.categorias.update', 'destroy' => 'admin.categorias.destroy',
+        'index' => 'admin.categorias.index', 'create' => 'admin.categorias.create',
+        'store' => 'admin.categorias.store', 'edit' => 'admin.categorias.edit',
+        'update' => 'admin.categorias.update', 'destroy' => 'admin.categorias.destroy',
     ])->except(['show'])->middleware('permission:categorias');
 
     Route::get('marcas/search', [MarcaController::class, 'search'])
@@ -54,46 +57,38 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         ->middleware('permission:marcas')->name('admin.marcas.toggleStatus');
 
     Route::resource('marcas', MarcaController::class)->names([
-        'index'   => 'admin.marcas.index', 'create'  => 'admin.marcas.create',
-        'store'   => 'admin.marcas.store', 'edit'    => 'admin.marcas.edit',
-        'update'  => 'admin.marcas.update', 'destroy' => 'admin.marcas.destroy',
+        'index' => 'admin.marcas.index', 'create' => 'admin.marcas.create',
+        'store' => 'admin.marcas.store', 'edit' => 'admin.marcas.edit',
+        'update' => 'admin.marcas.update', 'destroy' => 'admin.marcas.destroy',
     ])->except(['show'])->middleware('permission:marcas');
 
     Route::patch('proveedores/{proveedor}/toggle-status', [ProveedorController::class, 'toggleStatus'])
         ->middleware('permission:proveedores')->name('admin.proveedores.toggleStatus');
 
     Route::resource('proveedores', ProveedorController::class)->names([
-        'index'   => 'admin.proveedores.index', 'create'  => 'admin.proveedores.create',
-        'store'   => 'admin.proveedores.store', 'edit'    => 'admin.proveedores.edit',
-        'update'  => 'admin.proveedores.update', 'destroy' => 'admin.proveedores.destroy',
+        'index' => 'admin.proveedores.index', 'create' => 'admin.proveedores.create',
+        'store' => 'admin.proveedores.store', 'edit' => 'admin.proveedores.edit',
+        'update' => 'admin.proveedores.update', 'destroy' => 'admin.proveedores.destroy',
     ])->middleware('permission:proveedores');
 
-    Route::post('/reniec/consultar', [\App\Http\Controllers\Admin\ReniecController::class, 'checkDni'])
+    Route::post('/reniec/consultar', [ReniecController::class, 'checkDni'])
         ->middleware('permission:clientes')
         ->name('admin.reniec.consultar');
 
-    Route::post('/sunat/consultar', [\App\Http\Controllers\Admin\SunatController::class, 'checkRuc'])
+    Route::post('/sunat/consultar', [SunatController::class, 'checkRuc'])
         ->middleware('permission:proveedores')
         ->name('admin.sunat.consultar');
 
     Route::resource('clientes', ClienteController::class)->names([
-        'index'   => 'admin.clientes.index', 'create'  => 'admin.clientes.create',
-        'store'   => 'admin.clientes.store', 'edit'    => 'admin.clientes.edit',
-        'update'  => 'admin.clientes.update', 'destroy' => 'admin.clientes.destroy',
+        'index' => 'admin.clientes.index', 'create' => 'admin.clientes.create',
+        'store' => 'admin.clientes.store', 'edit' => 'admin.clientes.edit',
+        'update' => 'admin.clientes.update', 'destroy' => 'admin.clientes.destroy',
     ])->middleware('permission:clientes');
 
-    Route::middleware('permission:productos')
-        ->prefix('alertas')
-        ->name('admin.alertas.')
-        ->group(function () {
-            Route::get('/vencimientos', [AlertaVencimientoController::class, 'index'])
-                ->name('vencimientos');
-        });
-
     Route::resource('servicios', ServicioController::class)->names([
-        'index'   => 'admin.servicios.index', 'create'  => 'admin.servicios.create',
-        'store'   => 'admin.servicios.store', 'edit'    => 'admin.servicios.edit',
-        'update'  => 'admin.servicios.update', 'destroy' => 'admin.servicios.destroy',
+        'index' => 'admin.servicios.index', 'create' => 'admin.servicios.create',
+        'store' => 'admin.servicios.store', 'edit' => 'admin.servicios.edit',
+        'update' => 'admin.servicios.update', 'destroy' => 'admin.servicios.destroy',
     ])->middleware('permission:servicios');
 
     Route::get('productos/search', [ProductoController::class, 'search'])
@@ -103,29 +98,29 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         ->middleware('permission:productos')->name('admin.productos.toggleStatus');
 
     Route::resource('productos', ProductoController::class)->names([
-        'index'   => 'admin.productos.index', 'create'  => 'admin.productos.create',
-        'store'   => 'admin.productos.store', 'edit'    => 'admin.productos.edit',
-        'update'  => 'admin.productos.update', 'destroy' => 'admin.productos.destroy',
+        'index' => 'admin.productos.index', 'create' => 'admin.productos.create',
+        'store' => 'admin.productos.store', 'edit' => 'admin.productos.edit',
+        'update' => 'admin.productos.update', 'destroy' => 'admin.productos.destroy',
     ])->except(['show'])->middleware('permission:productos');
 
     Route::resource('ventas', VentaController::class)->names([
-        'index'   => 'admin.ventas.index', 'create'  => 'admin.ventas.create',
-        'store'   => 'admin.ventas.store', 'show'    => 'admin.ventas.show',
-        'edit'    => 'admin.ventas.edit', 'update'  => 'admin.ventas.update',
+        'index' => 'admin.ventas.index', 'create' => 'admin.ventas.create',
+        'store' => 'admin.ventas.store', 'show' => 'admin.ventas.show',
+        'edit' => 'admin.ventas.edit', 'update' => 'admin.ventas.update',
         'destroy' => 'admin.ventas.destroy',
     ])->middleware('permission:ventas');
 
     Route::resource('atenciones', AtencionController::class)->names([
-        'index'   => 'admin.atenciones.index', 'create'  => 'admin.atenciones.create',
-        'store'   => 'admin.atenciones.store', 'show'    => 'admin.atenciones.show',
-        'edit'    => 'admin.atenciones.edit', 'update'  => 'admin.atenciones.update',
+        'index' => 'admin.atenciones.index', 'create' => 'admin.atenciones.create',
+        'store' => 'admin.atenciones.store', 'show' => 'admin.atenciones.show',
+        'edit' => 'admin.atenciones.edit', 'update' => 'admin.atenciones.update',
         'destroy' => 'admin.atenciones.destroy',
     ])->middleware('permission:atenciones');
 
     Route::resource('ingresos', IngresoController::class)->names([
-        'index'   => 'admin.ingresos.index', 'create'  => 'admin.ingresos.create',
-        'store'   => 'admin.ingresos.store', 'show'    => 'admin.ingresos.show',
-        'edit'    => 'admin.ingresos.edit', 'update'  => 'admin.ingresos.update',
+        'index' => 'admin.ingresos.index', 'create' => 'admin.ingresos.create',
+        'store' => 'admin.ingresos.store', 'show' => 'admin.ingresos.show',
+        'edit' => 'admin.ingresos.edit', 'update' => 'admin.ingresos.update',
         'destroy' => 'admin.ingresos.destroy',
     ])->middleware('permission:ingresos');
 
@@ -141,9 +136,9 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         ->middleware('permission:usuarios')->name('admin.usuarios.toggleStatus');
 
     Route::resource('usuarios', UserController::class)->names([
-        'index'   => 'admin.usuarios.index', 'create'  => 'admin.usuarios.create',
-        'store'   => 'admin.usuarios.store', 'edit'    => 'admin.usuarios.edit',
-        'update'  => 'admin.usuarios.update', 'destroy' => 'admin.usuarios.destroy',
+        'index' => 'admin.usuarios.index', 'create' => 'admin.usuarios.create',
+        'store' => 'admin.usuarios.store', 'edit' => 'admin.usuarios.edit',
+        'update' => 'admin.usuarios.update', 'destroy' => 'admin.usuarios.destroy',
     ])->middleware('permission:usuarios');
 
     Route::prefix('caja')->name('admin.caja.')->group(function () {
@@ -233,25 +228,25 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         });
 
     Route::resource('roles', RoleController::class)->names([
-        'index'   => 'admin.roles.index', 'create'  => 'admin.roles.create',
-        'store'   => 'admin.roles.store', 'edit'    => 'admin.roles.edit',
-        'update'  => 'admin.roles.update', 'destroy' => 'admin.roles.destroy',
+        'index' => 'admin.roles.index', 'create' => 'admin.roles.create',
+        'store' => 'admin.roles.store', 'edit' => 'admin.roles.edit',
+        'update' => 'admin.roles.update', 'destroy' => 'admin.roles.destroy',
     ])->middleware('permission:roles');
 
     Route::middleware('permission:auditoria')
         ->prefix('auditoria')
         ->name('admin.auditoria.')
         ->group(function () {
-            Route::get('/', [\App\Http\Controllers\Admin\AuditoriaController::class, 'index'])->name('index');
-            Route::get('/{auditorium}', [\App\Http\Controllers\Admin\AuditoriaController::class, 'show'])->name('show');
+            Route::get('/', [AuditoriaController::class, 'index'])->name('index');
+            Route::get('/{auditorium}', [AuditoriaController::class, 'show'])->name('show');
         });
 
     Route::middleware('permission:reportes')
         ->prefix('reportes')
         ->name('admin.reportes.')
         ->group(function () {
-            Route::get('/', [\App\Http\Controllers\Admin\ReporteController::class, 'index'])->name('index');
-            Route::get('/generate', [\App\Http\Controllers\Admin\ReporteController::class, 'generate'])->name('generate');
-            Route::get('/preview', [\App\Http\Controllers\Admin\ReporteController::class, 'preview'])->name('preview');
+            Route::get('/', [ReporteController::class, 'index'])->name('index');
+            Route::get('/generate', [ReporteController::class, 'generate'])->name('generate');
+            Route::get('/preview', [ReporteController::class, 'preview'])->name('preview');
         });
 });

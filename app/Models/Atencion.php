@@ -40,9 +40,4 @@ class Atencion extends Model
         return $this->belongsToMany(Servicio::class, 'atencion_servicio', 'atencion_id_atencion', 'servicio_id_servicio')
             ->withPivot('subtotal');
     }
-
-    public function lotesConsumidos()
-    {
-        return $this->hasMany(AtencionProductoLote::class, 'atencion_id_atencion', 'id_atencion');
-    }
 }

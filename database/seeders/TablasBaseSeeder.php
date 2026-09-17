@@ -20,7 +20,7 @@ class TablasBaseSeeder extends Seeder
             ['nombre' => 'Cuidado Personal', 'descripcion' => 'Productos de higiene y cuidado',    'cantidad' => 0, 'estado' => 1],
             ['nombre' => 'Bebés',            'descripcion' => 'Pañales, leche y accesorios',       'cantidad' => 0, 'estado' => 1],
             ['nombre' => 'Vitaminas',        'descripcion' => 'Suplementos vitamínicos',           'cantidad' => 0, 'estado' => 1],
-            ['nombre' => 'Primeros Auxilios','descripcion' => 'Vendas, gasas y curitas',           'cantidad' => 0, 'estado' => 1],
+            ['nombre' => 'Primeros Auxilios', 'descripcion' => 'Vendas, gasas y curitas',           'cantidad' => 0, 'estado' => 1],
             ['nombre' => 'Higiene',          'descripcion' => 'Jabones, shampoos y desodorantes',  'cantidad' => 0, 'estado' => 1],
         ];
         $catIds = [];
@@ -89,7 +89,7 @@ class TablasBaseSeeder extends Seeder
             ['Pañales x50',        'Pañales desechables talla M',  18.00, 25.00, 'Bebés',            'Johnson & Johnson'],
             ['Vitamina C 1000mg',  'Suplemento de vitamina C',      10.00, 18.00, 'Vitaminas',         'Natura'],
             ['Alcohol 70° 1L',     'Alcohol desinfectante',          4.00,  7.00, 'Primeros Auxilios', 'Genérico'],
-            ['Jabón antibacterial','Jabón líquido antibacterial',     5.00,  9.00, 'Higiene',           'Natura'],
+            ['Jabón antibacterial', 'Jabón líquido antibacterial',     5.00,  9.00, 'Higiene',           'Natura'],
             ['Shampoo anticaspa',  'Shampoo tratamiento anticaspa', 12.00, 22.00, 'Higiene',           'Vichy'],
             ['Curitas x20',        'Curitas adhesivas',              2.00,  3.50, 'Primeros Auxilios', 'Johnson & Johnson'],
             ['Multivitamínico',    'Complejo multivitamínico',       25.00, 40.00, 'Vitaminas',         'Bayer'],
@@ -99,20 +99,24 @@ class TablasBaseSeeder extends Seeder
         $prodIds = [];
         foreach ($productDefs as $p) {
             $prodIds[] = DB::table('producto')->insertGetId([
-                'nombre'                 => $p[0],
-                'descripcion'            => $p[1],
-                'precio_compra'          => $p[2],
-                'precio_venta'           => $p[3],
-                'estado'                 => 1,
-                'inventario'             => 0,
-                'stock'                  => 0,
+                'nombre' => $p[0],
+                'descripcion' => $p[1],
+                'precio_compra' => $p[2],
+                'precio_venta' => $p[3],
+                'estado' => 1,
+                'inventario' => 0,
+                'stock' => 0,
                 'categoria_id_categoria' => $catIds[$p[4]],
-                'marca_id_marca'         => $marcaIds[$p[5]],
+                'marca_id_marca' => $marcaIds[$p[5]],
             ]);
         }
 
-        // ── 7. INGRESOS con creación de lotes ──
-        // Each ingreso defines its detail lines with lote_code, expiry, and quantity
+        $productoIngresado = array_fill(0, count($productDefs), 0);
+        $productoConsumido = array_fill(0, count($productDefs), 0);
+        $movimientos = [];
+        $indiceMov = 0;
+
+        // ── 7. INGRESOS ──
         $ingresoBase = Carbon::today()->subDays(60);
 
         $ingresosData = [
@@ -123,23 +127,23 @@ class TablasBaseSeeder extends Seeder
                 'fecha' => $ingresoBase->toDateString(),
                 'user_id' => $adminId,
                 'detalle' => [
-                    ['producto_idx' => 0, 'cantidad' => 200, 'lote' => 'LOTE-PAR-001', 'vencimiento' => $ingresoBase->copy()->addYear()->toDateString()],
-                    ['producto_idx' => 1, 'cantidad' => 150, 'lote' => 'LOTE-IBU-001', 'vencimiento' => $ingresoBase->copy()->addMonths(10)->toDateString()],
-                    ['producto_idx' => 2, 'cantidad' => 100, 'lote' => 'LOTE-AMO-001', 'vencimiento' => $ingresoBase->copy()->addMonths(8)->toDateString()],
-                    ['producto_idx' => 6, 'cantidad' => 80,  'lote' => 'LOTE-JAB-001', 'vencimiento' => $ingresoBase->copy()->addMonths(18)->toDateString()],
+                    ['producto_idx' => 0, 'cantidad' => 200],
+                    ['producto_idx' => 1, 'cantidad' => 150],
+                    ['producto_idx' => 2, 'cantidad' => 100],
+                    ['producto_idx' => 6, 'cantidad' => 80],
                 ],
             ],
-            // ING-002: second purchase from prov[1], 20 days ago
+            // ING-002: second purchase from prov[1], 45 days ago (15 after ING-001)
             [
                 'correlativo' => 'ING-002',
                 'proveedor_id' => $provIds[1],
                 'fecha' => $ingresoBase->copy()->addDays(15)->toDateString(),
                 'user_id' => $adminId,
                 'detalle' => [
-                    ['producto_idx' => 0, 'cantidad' => 200, 'lote' => 'LOTE-PAR-002', 'vencimiento' => $ingresoBase->copy()->addMonths(14)->toDateString()],
-                    ['producto_idx' => 1, 'cantidad' => 150, 'lote' => 'LOTE-IBU-002', 'vencimiento' => $ingresoBase->copy()->addMonths(11)->toDateString()],
-                    ['producto_idx' => 2, 'cantidad' => 100, 'lote' => 'LOTE-AMO-002', 'vencimiento' => $ingresoBase->copy()->addMonths(9)->toDateString()],
-                    ['producto_idx' => 7, 'cantidad' => 60,  'lote' => 'LOTE-SHA-001', 'vencimiento' => $ingresoBase->copy()->addMonths(20)->toDateString()],
+                    ['producto_idx' => 0, 'cantidad' => 200],
+                    ['producto_idx' => 1, 'cantidad' => 150],
+                    ['producto_idx' => 2, 'cantidad' => 100],
+                    ['producto_idx' => 7, 'cantidad' => 60],
                 ],
             ],
             // ING-003: third purchase from prov[2], 2 days ago
@@ -149,58 +153,49 @@ class TablasBaseSeeder extends Seeder
                 'fecha' => Carbon::today()->subDays(2)->toDateString(),
                 'user_id' => $adminId,
                 'detalle' => [
-                    ['producto_idx' => 4, 'cantidad' => 100, 'lote' => 'LOTE-VIT-001', 'vencimiento' => $ingresoBase->copy()->addMonths(16)->toDateString()],
-                    ['producto_idx' => 5, 'cantidad' => 80,  'lote' => 'LOTE-ALC-001', 'vencimiento' => $ingresoBase->copy()->addMonths(22)->toDateString()],
-                    ['producto_idx' => 8, 'cantidad' => 150, 'lote' => 'LOTE-CUR-001', 'vencimiento' => $ingresoBase->copy()->addMonths(24)->toDateString()],
-                    ['producto_idx' => 9, 'cantidad' => 40,  'lote' => 'LOTE-MUL-001', 'vencimiento' => $ingresoBase->copy()->addMonths(15)->toDateString()],
-                    ['producto_idx' => 3, 'cantidad' => 50,  'lote' => 'LOTE-PAN-001', 'vencimiento' => $ingresoBase->copy()->addMonths(12)->toDateString()],
+                    ['producto_idx' => 4, 'cantidad' => 100],
+                    ['producto_idx' => 5, 'cantidad' => 80],
+                    ['producto_idx' => 8, 'cantidad' => 150],
+                    ['producto_idx' => 9, 'cantidad' => 40],
+                    ['producto_idx' => 3, 'cantidad' => 50],
                 ],
             ],
         ];
 
-        // Track per-product: all lots received (for later FIFO consumption)
-        // Each lot entry: { id_lote (set after insert), cantidad, fecha_vencimiento, ingreso_id }
-        $productoLotes = array_fill(0, count($productDefs), []);
-
         foreach ($ingresosData as $ingData) {
             $ingId = DB::table('ingreso')->insertGetId([
-                'correlativo'               => $ingData['correlativo'],
-                'proveedor_id_proveedor'    => $ingData['proveedor_id'],
-                'fecha'                     => $ingData['fecha'],
-                'user_id'                   => $ingData['user_id'],
+                'correlativo' => $ingData['correlativo'],
+                'proveedor_id_proveedor' => $ingData['proveedor_id'],
+                'fecha' => $ingData['fecha'],
+                'user_id' => $ingData['user_id'],
             ]);
 
             $detalleRows = [];
             foreach ($ingData['detalle'] as $det) {
                 $prodIdx = $det['producto_idx'];
+
                 $detalleRows[] = [
-                    'ingreso_id_ingreso'       => $ingId,
-                    'producto_id_producto'     => $prodIds[$prodIdx],
-                    'cantidad'                 => $det['cantidad'],
-                    'lote'                     => $det['lote'],
-                    'fecha_vencimiento'        => $det['vencimiento'],
+                    'ingreso_id_ingreso' => $ingId,
+                    'producto_id_producto' => $prodIds[$prodIdx],
+                    'cantidad' => $det['cantidad'],
+                ];
+
+                $productoIngresado[$prodIdx] += $det['cantidad'];
+
+                $movimientos[] = [
+                    'indice' => $indiceMov++,
+                    'ts' => Carbon::parse($ingData['fecha']),
+                    'producto_id' => $prodIds[$prodIdx],
+                    'usuario_id' => $ingData['user_id'],
+                    'tipo_movimiento' => 'INGRESO',
+                    'referencia_tipo' => 'Ingreso',
+                    'referencia_id' => $ingId,
+                    'referencia_codigo' => $ingData['correlativo'],
+                    'cantidad' => $det['cantidad'],
+                    'observacion' => 'Ingreso registrado',
                 ];
             }
             DB::table('detalle_ingreso')->insert($detalleRows);
-
-            // Create lotes for each detail line
-            foreach ($detalleRows as $det) {
-                $loteId = DB::table('lote_producto')->insertGetId([
-                    'producto_id_producto'  => $det['producto_id_producto'],
-                    'codigo_lote'           => $det['lote'],
-                    'fecha_vencimiento'     => $det['fecha_vencimiento'],
-                    'cantidad'              => $det['cantidad'],
-                    'ingreso_id_ingreso'    => $ingId,
-                ]);
-
-                $prodIdx = array_search($det['producto_id_producto'], $prodIds);
-                $productoLotes[$prodIdx][] = [
-                    'id_lote'            => $loteId,
-                    'cantidad'           => $det['cantidad'],
-                    'fecha_vencimiento'  => $det['fecha_vencimiento'],
-                    'ingreso_id_ingreso' => $ingId,
-                ];
-            }
         }
 
         // ── 8. VENTAS ──
@@ -245,6 +240,51 @@ class TablasBaseSeeder extends Seeder
             ],
         ];
 
+        $ventaIds = [];
+
+        foreach ($ventasData as $vData) {
+            $total = collect($vData['detalles'])->sum(fn ($d) => $d['cantidad'] * $productDefs[$d['producto_idx']][3]);
+
+            $vId = DB::table('venta')->insertGetId([
+                'correlativo' => $vData['correlativo'],
+                'total' => $total,
+                'cliente_id_cliente' => $clienteIds[$vData['cliente_idx']],
+                'user_id' => $vData['user_id'],
+                'created_at' => $vData['created_at'],
+                'updated_at' => $vData['created_at'],
+            ]);
+            $ventaIds[] = $vId;
+
+            foreach ($vData['detalles'] as $det) {
+                $prodIdx = $det['producto_idx'];
+                $cantidad = $det['cantidad'];
+                $precio = $productDefs[$prodIdx][3];
+                $subTotal = $cantidad * $precio;
+
+                DB::table('detalle_venta')->insert([
+                    'venta_id_venta' => $vId,
+                    'producto_id_producto' => $prodIds[$prodIdx],
+                    'sub_total' => $subTotal,
+                    'cantidad' => $cantidad,
+                ]);
+
+                $productoConsumido[$prodIdx] += $cantidad;
+
+                $movimientos[] = [
+                    'indice' => $indiceMov++,
+                    'ts' => $vData['created_at'],
+                    'producto_id' => $prodIds[$prodIdx],
+                    'usuario_id' => $vData['user_id'],
+                    'tipo_movimiento' => 'VENTA',
+                    'referencia_tipo' => 'Venta',
+                    'referencia_id' => $vId,
+                    'referencia_codigo' => $vData['correlativo'],
+                    'cantidad' => -$cantidad,
+                    'observacion' => 'Venta registrada',
+                ];
+            }
+        }
+
         // ── 9. ATENCIONES ──
         $atenBase = Carbon::today()->subDays(5);
 
@@ -271,271 +311,126 @@ class TablasBaseSeeder extends Seeder
             ],
         ];
 
-        // ── TRACK CONSUMPTION FOR STOCK/LOTE ACCOUNTING ──
-        // $productConsumed[$prodIdx] = total units consumed across all ventas + atenciones
-        $productConsumed = array_fill(0, count($productDefs), 0);
-
-        // Helper: consume from FIFO lotes and return an array of lot consumption records
-        $consumirLotes = function (int $prodIdx, int $cantidad) use (&$productoLotes): array {
-            $porConsumir = $cantidad;
-            $consumos = [];
-
-            // Sort lots by fecha_vencimiento ASC, then id_lote ASC
-            usort($productoLotes[$prodIdx], function ($a, $b) {
-                $cmp = strcmp($a['fecha_vencimiento'], $b['fecha_vencimiento']);
-                return $cmp !== 0 ? $cmp : ($a['id_lote'] - $b['id_lote']);
-            });
-
-            foreach ($productoLotes[$prodIdx] as &$lote) {
-                if ($porConsumir <= 0) break;
-                if ($lote['cantidad'] <= 0) continue;
-
-                $aConsumir = min($lote['cantidad'], $porConsumir);
-                $lote['cantidad'] -= $aConsumir;
-                $porConsumir -= $aConsumir;
-
-                $consumos[] = [
-                    'lote_id_lote' => $lote['id_lote'],
-                    'cantidad'     => $aConsumir,
-                ];
-            }
-            unset($lote);
-
-            if ($porConsumir > 0) {
-                throw new \RuntimeException("No hay suficiente stock en lotes para producto #{$prodIdx}, faltan {$porConsumir} unidades.");
-            }
-
-            return $consumos;
-        };
-
-        // ── INSERT VENTAS (with lot consumption tracking) ──
-        $ventaIds = [];
-        $allVentaDetalles = []; // for kardex entries later
-
-        foreach ($ventasData as $vData) {
-            $total = collect($vData['detalles'])->sum(fn($d) => $d['cantidad'] * $productDefs[$d['producto_idx']][3]);
-
-            $vId = DB::table('venta')->insertGetId([
-                'correlativo'            => $vData['correlativo'],
-                'total'                  => $total,
-                'cliente_id_cliente'     => $clienteIds[$vData['cliente_idx']],
-                'user_id'                => $vData['user_id'],
-                'created_at'             => $vData['created_at'],
-                'updated_at'             => $vData['created_at'],
-            ]);
-            $ventaIds[] = $vId;
-
-            foreach ($vData['detalles'] as $det) {
-                $prodIdx    = $det['producto_idx'];
-                $cantidad   = $det['cantidad'];
-                $precio     = $productDefs[$prodIdx][3];
-                $subTotal   = $cantidad * $precio;
-
-                DB::table('detalle_venta')->insert([
-                    'venta_id_venta'         => $vId,
-                    'producto_id_producto'   => $prodIds[$prodIdx],
-                    'sub_total'              => $subTotal,
-                    'cantidad'               => $cantidad,
-                ]);
-
-                // FIFO consumption from lots
-                $consumos = $consumirLotes($prodIdx, $cantidad);
-
-                foreach ($consumos as $con) {
-                    DB::table('detalle_venta_lote')->insert([
-                        'venta_id_venta'         => $vId,
-                        'producto_id_producto'   => $prodIds[$prodIdx],
-                        'lote_id_lote'           => $con['lote_id_lote'],
-                        'cantidad'               => $con['cantidad'],
-                    ]);
-                }
-
-                $productConsumed[$prodIdx] += $cantidad;
-                $allVentaDetalles[] = [
-                    'vId'       => $vId,
-                    'prodIdx'   => $prodIdx,
-                    'cantidad'  => $cantidad,
-                    'correlativo' => $vData['correlativo'],
-                ];
-            }
-        }
-
-        // ── INSERT ATENCIONES (with lot consumption tracking) ──
         $atencionIds = [];
-        $allAtencionDetalles = [];
 
         foreach ($atencionesData as $aData) {
             $total = 0;
 
-            if (!empty($aData['productos'])) {
-                $total += collect($aData['productos'])->sum(fn($d) => $d['cantidad'] * $productDefs[$d['producto_idx']][3]);
+            if (! empty($aData['productos'])) {
+                $total += collect($aData['productos'])->sum(fn ($d) => $d['cantidad'] * $productDefs[$d['producto_idx']][3]);
             }
-            if (!empty($aData['servicios'])) {
+            if (! empty($aData['servicios'])) {
                 $total += collect($aData['servicios'])->sum('subtotal');
             }
 
             $aId = DB::table('atencion')->insertGetId([
-                'observacio'             => $aData['observacio'],
-                'total'                  => $total,
-                'cliente_id_cliente'     => $clienteIds[$aData['cliente_idx']],
-                'user_id'                => $aData['user_id'],
-                'created_at'             => $aData['created_at'],
-                'updated_at'             => $aData['created_at'],
+                'observacio' => $aData['observacio'],
+                'total' => $total,
+                'cliente_id_cliente' => $clienteIds[$aData['cliente_idx']],
+                'user_id' => $aData['user_id'],
+                'created_at' => $aData['created_at'],
+                'updated_at' => $aData['created_at'],
             ]);
             $atencionIds[] = $aId;
 
-            if (!empty($aData['productos'])) {
+            if (! empty($aData['productos'])) {
                 foreach ($aData['productos'] as $det) {
-                    $prodIdx  = $det['producto_idx'];
+                    $prodIdx = $det['producto_idx'];
                     $cantidad = $det['cantidad'];
-                    $precio   = $productDefs[$prodIdx][3];
+                    $precio = $productDefs[$prodIdx][3];
                     $subTotal = $cantidad * $precio;
 
                     DB::table('atencion_producto')->insert([
-                        'atencion_id_atencion'   => $aId,
-                        'producto_id_producto'   => $prodIds[$prodIdx],
-                        'sub_total'              => $subTotal,
-                        'cantidad'               => $cantidad,
+                        'atencion_id_atencion' => $aId,
+                        'producto_id_producto' => $prodIds[$prodIdx],
+                        'sub_total' => $subTotal,
+                        'cantidad' => $cantidad,
                     ]);
 
-                    // FIFO consumption from lots
-                    $consumos = $consumirLotes($prodIdx, $cantidad);
+                    $productoConsumido[$prodIdx] += $cantidad;
 
-                    foreach ($consumos as $con) {
-                        DB::table('atencion_producto_lote')->insert([
-                            'atencion_id_atencion'   => $aId,
-                            'producto_id_producto'   => $prodIds[$prodIdx],
-                            'lote_id_lote'           => $con['lote_id_lote'],
-                            'cantidad'               => $con['cantidad'],
-                        ]);
-                    }
-
-                    $productConsumed[$prodIdx] += $cantidad;
-                    $allAtencionDetalles[] = [
-                        'aId'      => $aId,
-                        'prodIdx'  => $prodIdx,
-                        'cantidad' => $cantidad,
+                    $movimientos[] = [
+                        'indice' => $indiceMov++,
+                        'ts' => $aData['created_at'],
+                        'producto_id' => $prodIds[$prodIdx],
+                        'usuario_id' => $aData['user_id'],
+                        'tipo_movimiento' => 'ATENCION',
+                        'referencia_tipo' => 'Atencion',
+                        'referencia_id' => $aId,
+                        'referencia_codigo' => '#'.$aId,
+                        'cantidad' => -$cantidad,
+                        'observacion' => 'Atención registrada',
                     ];
                 }
             }
 
-            if (!empty($aData['servicios'])) {
+            if (! empty($aData['servicios'])) {
                 foreach ($aData['servicios'] as $s) {
                     DB::table('atencion_servicio')->insert([
-                        'atencion_id_atencion'    => $aId,
-                        'servicio_id_servicio'    => $servIds[$s['servicio_idx']],
-                        'subtotal'                => $s['subtotal'],
+                        'atencion_id_atencion' => $aId,
+                        'servicio_id_servicio' => $servIds[$s['servicio_idx']],
+                        'subtotal' => $s['subtotal'],
                     ]);
                 }
             }
         }
 
-        // ── NOW UPDATE PRODUCT INVENTARIO, STOCK, AND LOTE CANTIDAD ──
+        // ── UPDATE PRODUCT INVENTARIO / STOCK ──
         foreach ($productDefs as $prodIdx => $def) {
-            $totalIngresado = collect($productoLotes[$prodIdx])->sum('cantidad') + $productConsumed[$prodIdx];
-            // $totalIngresado = original lot cantidad + what was consumed = total ever received
-            // (because we consumed from lots, decrementing their cantidad)
-            $stock = $totalIngresado - $productConsumed[$prodIdx];
+            $inventario = $productoIngresado[$prodIdx];
+            $stock = $inventario - $productoConsumido[$prodIdx];
 
-            // Update producto row
             DB::table('producto')->where('id_producto', $prodIds[$prodIdx])->update([
-                'inventario' => $totalIngresado,
-                'stock'      => $stock,
-            ]);
-
-            // Update lote_producto with remaining cantidad
-            foreach ($productoLotes[$prodIdx] as $lote) {
-                DB::table('lote_producto')
-                    ->where('id_lote', $lote['id_lote'])
-                    ->update(['cantidad' => $lote['cantidad']]);
-            }
-        }
-
-        // ── KARDEX MOVEMENTS ──
-        foreach ($ingresosData as $ingData) {
-            $ingId = DB::table('ingreso')
-                ->where('correlativo', $ingData['correlativo'])
-                ->value('id_ingreso');
-
-            foreach ($ingData['detalle'] as $det) {
-                $prodIdx = $det['producto_idx'];
-                $productId = $prodIds[$prodIdx];
-
-                // Get current stock BEFORE this ingreso for kardex
-                $totalBefore = collect($productoLotes[$prodIdx])->sum('cantidad')
-                    + $productConsumed[$prodIdx]
-                    - $det['cantidad'];
-
-                $stockBefore = max(0, $totalBefore - $productConsumed[$prodIdx]);
-
-                // For simplicity, we'll create kardex using the actual current state
-                // This is an approximation since we're using DB::table
-                DB::table('kardex_movimientos')->insert([
-                    'producto_id'       => $productId,
-                    'usuario_id'        => $ingData['user_id'],
-                    'tipo_movimiento'   => 'INGRESO',
-                    'referencia_tipo'   => 'Ingreso',
-                    'referencia_id'     => $ingId,
-                    'referencia_codigo' => $ingData['correlativo'],
-                    'cantidad'          => $det['cantidad'],
-                    'stock_anterior'    => 0,
-                    'stock_nuevo'       => $det['cantidad'],
-                    'observacion'       => 'Ingreso registrado',
-                    'created_at'        => $ingData['fecha'] . ' 00:00:00',
-                    'updated_at'        => $ingData['fecha'] . ' 00:00:00',
-                ]);
-            }
-        }
-
-        // For venta kardex entries — use processed data
-        foreach ($allVentaDetalles as $det) {
-            DB::table('kardex_movimientos')->insert([
-                'producto_id'       => $prodIds[$det['prodIdx']],
-                'usuario_id'        => $adminId,
-                'tipo_movimiento'   => 'VENTA',
-                'referencia_tipo'   => 'Venta',
-                'referencia_id'     => $det['vId'],
-                'referencia_codigo' => $det['correlativo'],
-                'cantidad'          => -$det['cantidad'],
-                'stock_anterior'    => 0,
-                'stock_nuevo'       => 0,
-                'observacion'       => 'Venta registrada',
-                'created_at'        => $now,
-                'updated_at'        => $now,
+                'inventario' => $inventario,
+                'stock' => $stock,
             ]);
         }
 
-        foreach ($allAtencionDetalles as $det) {
+        // ── KARDEX MOVEMENTS (cronológico) ──
+        usort($movimientos, function ($a, $b) {
+            $cmp = $a['ts']->timestamp - $b['ts']->timestamp;
+
+            return $cmp !== 0 ? $cmp : ($a['indice'] - $b['indice']);
+        });
+
+        $stockActual = [];
+
+        foreach ($movimientos as $mov) {
+            $stockAnterior = $stockActual[$mov['producto_id']] ?? 0;
+            $stockNuevo = $stockAnterior + $mov['cantidad'];
+
+            $stockActual[$mov['producto_id']] = $stockNuevo;
+
             DB::table('kardex_movimientos')->insert([
-                'producto_id'       => $prodIds[$det['prodIdx']],
-                'usuario_id'        => $adminId,
-                'tipo_movimiento'   => 'ATENCION',
-                'referencia_tipo'   => 'Atencion',
-                'referencia_id'     => $det['aId'],
-                'referencia_codigo' => '#' . $det['aId'],
-                'cantidad'          => -$det['cantidad'],
-                'stock_anterior'    => 0,
-                'stock_nuevo'       => 0,
-                'observacion'       => 'Atención registrada',
-                'created_at'        => $now,
-                'updated_at'        => $now,
+                'producto_id' => $mov['producto_id'],
+                'usuario_id' => $mov['usuario_id'],
+                'tipo_movimiento' => $mov['tipo_movimiento'],
+                'referencia_tipo' => $mov['referencia_tipo'],
+                'referencia_id' => $mov['referencia_id'],
+                'referencia_codigo' => $mov['referencia_codigo'],
+                'cantidad' => $mov['cantidad'],
+                'stock_anterior' => $stockAnterior,
+                'stock_nuevo' => $stockNuevo,
+                'observacion' => $mov['observacion'],
+                'created_at' => $mov['ts'],
+                'updated_at' => $mov['ts'],
             ]);
         }
 
         // ── CAJA ──
         // Create an open caja for today
         $cajaId = DB::table('caja')->insertGetId([
-            'monto_inicial'   => 200.00,
-            'total_ingresos'  => 0,
-            'total_egresos'   => 0,
-            'monto_final'     => null,
-            'estado'          => 'abierta',
-            'apertura_user_id'=> $adminId,
-            'cierre_user_id'  => null,
-            'apertura_at'     => $now,
-            'cierre_at'       => null,
-            'created_at'      => $now,
-            'updated_at'      => $now,
+            'monto_inicial' => 200.00,
+            'total_ingresos' => 0,
+            'total_egresos' => 0,
+            'monto_final' => null,
+            'estado' => 'abierta',
+            'apertura_user_id' => $adminId,
+            'cierre_user_id' => null,
+            'apertura_at' => $now,
+            'cierre_at' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
 
         // ── CAJA MOVIMIENTOS ──
@@ -545,14 +440,14 @@ class TablasBaseSeeder extends Seeder
             $total = DB::table('venta')->where('id_venta', $vId)->value('total');
 
             DB::table('caja_movimiento')->insert([
-                'caja_id_caja'     => $cajaId,
-                'tipo'             => 'ingreso',
-                'monto'            => $total,
-                'descripcion'      => null,
-                'referencia_tipo'  => 'venta',
-                'referencia_id'    => $vId,
-                'user_id'          => $vData['user_id'],
-                'created_at'       => $vData['created_at'],
+                'caja_id_caja' => $cajaId,
+                'tipo' => 'ingreso',
+                'monto' => $total,
+                'descripcion' => null,
+                'referencia_tipo' => 'venta',
+                'referencia_id' => $vId,
+                'user_id' => $vData['user_id'],
+                'created_at' => $vData['created_at'],
             ]);
 
             DB::table('caja')->where('id_caja', $cajaId)->increment('total_ingresos', $total);
@@ -564,14 +459,14 @@ class TablasBaseSeeder extends Seeder
             $total = DB::table('atencion')->where('id_atencion', $aId)->value('total');
 
             DB::table('caja_movimiento')->insert([
-                'caja_id_caja'     => $cajaId,
-                'tipo'             => 'ingreso',
-                'monto'            => $total,
-                'descripcion'      => null,
-                'referencia_tipo'  => 'atencion',
-                'referencia_id'    => $aId,
-                'user_id'          => $aData['user_id'],
-                'created_at'       => $aData['created_at'],
+                'caja_id_caja' => $cajaId,
+                'tipo' => 'ingreso',
+                'monto' => $total,
+                'descripcion' => null,
+                'referencia_tipo' => 'atencion',
+                'referencia_id' => $aId,
+                'user_id' => $aData['user_id'],
+                'created_at' => $aData['created_at'],
             ]);
 
             DB::table('caja')->where('id_caja', $cajaId)->increment('total_ingresos', $total);

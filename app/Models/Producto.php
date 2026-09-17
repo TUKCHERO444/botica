@@ -29,15 +29,20 @@ class Producto extends Model
     public function imagenes()
     {
         return $this->hasMany(ProductoImagen::class, 'producto_id_producto')
-                    ->orderBy('orden');
+            ->orderBy('orden');
     }
 
     public function getFotoUrlAttribute(): ?string
     {
         $primera = $this->imagenes->first();
-        if (!$primera?->url) return null;
-        if (str_starts_with($primera->url, 'http')) return $primera->url;
-        return asset('storage/' . $primera->url);
+        if (! $primera?->url) {
+            return null;
+        }
+        if (str_starts_with($primera->url, 'http')) {
+            return $primera->url;
+        }
+
+        return asset('storage/'.$primera->url);
     }
 
     public function categoria()
@@ -59,28 +64,7 @@ class Producto extends Model
     public function ingresos()
     {
         return $this->belongsToMany(Ingreso::class, 'detalle_ingreso', 'producto_id_producto', 'ingreso_id_ingreso')
-            ->withPivot('cantidad', 'lote', 'fecha_vencimiento');
-    }
-
-    public function lotes()
-    {
-        return $this->hasMany(LoteProducto::class, 'producto_id_producto', 'id_producto');
-    }
-
-    public function lotesDisponibles()
-    {
-        return $this->lotes()->where('cantidad', '>', 0)->orderBy('fecha_vencimiento')->orderBy('id_lote');
-    }
-
-    public function getProximoVencimientoAttribute(): ?string
-    {
-        $lote = $this->lotesDisponibles()->first();
-        return $lote?->fecha_vencimiento?->format('Y-m-d');
-    }
-
-    public function getStockVencidoAttribute(): int
-    {
-        return (int) $this->lotes()->vencido()->sum('cantidad');
+            ->withPivot('cantidad');
     }
 
     public function ventas()

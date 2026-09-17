@@ -43,7 +43,7 @@
 
         <div id="productos-container" class="space-y-2">
             <div class="producto-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
-                <div class="sm:col-span-4">
+                <div class="sm:col-span-5">
                     <label class="block text-xs font-medium text-stone-600 mb-1">Producto <span class="text-red-500">*</span></label>
                     <select name="productos[0][producto_id_producto]" required
                         class="producto-select w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
@@ -55,22 +55,12 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="sm:col-span-2">
-                    <label class="block text-xs font-medium text-stone-600 mb-1">N° Lote <span class="text-red-500">*</span></label>
-                    <input type="text" name="productos[0][lote]" placeholder="Ej: LOT2405A" required
-                        class="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
-                </div>
-                <div class="sm:col-span-2">
-                    <label class="block text-xs font-medium text-stone-600 mb-1">Vencimiento <span class="text-red-500">*</span></label>
-                    <input type="date" name="productos[0][fecha_vencimiento]" required
-                        class="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
-                </div>
-                <div class="sm:col-span-2">
+                <div class="sm:col-span-3">
                     <label class="block text-xs font-medium text-stone-600 mb-1">Cantidad <span class="text-red-500">*</span></label>
                     <input type="number" name="productos[0][cantidad]" min="1" value="1" required
                         class="producto-cantidad w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
                 </div>
-                <div class="sm:col-span-2 flex items-end pb-1 gap-2">
+                <div class="sm:col-span-4 flex items-end pb-1 gap-2">
                     <span class="producto-info text-xs text-stone-400 pt-2">Stock: <span class="producto-stock-actual">0</span></span>
                     <button type="button" class="eliminar-producto text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition" title="Eliminar">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

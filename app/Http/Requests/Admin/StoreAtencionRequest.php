@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Models\LoteProducto;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 
@@ -47,31 +46,23 @@ class StoreAtencionRequest extends FormRequest
         $validator->after(function ($validator) {
             $productos = $this->input('productos', []);
 
-            if (empty($productos)) return;
+            if (empty($productos)) {
+                return;
+            }
 
             foreach ($productos as $i => $p) {
                 $producto = DB::table('producto')
                     ->where('id_producto', $p['producto_id_producto'])
                     ->first();
 
-                if (!$producto) continue;
+                if (! $producto) {
+                    continue;
+                }
 
                 if ($p['cantidad'] > $producto->stock) {
                     $validator->errors()->add(
                         "productos.{$i}.cantidad",
                         "\"{$producto->nombre}\" — Stock disponible: {$producto->stock}, solicitado: {$p['cantidad']}."
-                    );
-                    continue;
-                }
-
-                $lotesDisponibles = LoteProducto::where('producto_id_producto', $p['producto_id_producto'])
-                    ->where('cantidad', '>', 0)
-                    ->sum('cantidad');
-
-                if ($p['cantidad'] > $lotesDisponibles) {
-                    $validator->errors()->add(
-                        "productos.{$i}.cantidad",
-                        "\"{$producto->nombre}\" — Stock físico en lotes: {$lotesDisponibles}, solicitado: {$p['cantidad']}. Realice un ingreso para reponer inventario."
                     );
                 }
             }

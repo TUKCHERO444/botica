@@ -33,8 +33,6 @@
             <thead>
                 <tr class="bg-stone-100 text-stone-600 text-left">
                     <th class="px-3 py-2 font-medium">Producto</th>
-                    <th class="px-3 py-2 font-medium">Lote</th>
-                    <th class="px-3 py-2 font-medium">Vencimiento</th>
                     <th class="px-3 py-2 font-medium text-center">Cantidad</th>
                 </tr>
             </thead>
@@ -42,13 +40,11 @@
                 @forelse ($ingreso->productos as $p)
                     <tr class="hover:bg-stone-50">
                         <td class="px-3 py-2 text-stone-700">{{ $p->nombre }}</td>
-                        <td class="px-3 py-2 font-mono text-stone-600">{{ $p->pivot->lote ?? '—' }}</td>
-                        <td class="px-3 py-2 text-stone-600">{{ $p->pivot->fecha_vencimiento ? \Carbon\Carbon::parse($p->pivot->fecha_vencimiento)->format('d/m/Y') : '—' }}</td>
                         <td class="px-3 py-2 text-stone-600 text-center font-medium">{{ $p->pivot->cantidad }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="px-3 py-4 text-center text-stone-400">No hay productos registrados.</td>
+                        <td colspan="2" class="px-3 py-4 text-center text-stone-400">No hay productos registrados.</td>
                     </tr>
                 @endforelse
             </tbody>

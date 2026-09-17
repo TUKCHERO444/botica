@@ -9,18 +9,18 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreIngresoRequest;
 use App\Http\Requests\Admin\UpdateIngresoRequest;
 use App\Models\Ingreso;
-use App\Models\LoteProducto;
 use App\Models\Producto;
 use App\Models\Proveedor;
 use Illuminate\Support\Facades\DB;
 
 class IngresoController extends Controller
 {
-    use CacheaPanel, Audita;
+    use Audita, CacheaPanel;
 
     private function generarCorrelativo(int $idIngreso): string
     {
         $sufijo = str_pad($idIngreso, 8, '0', STR_PAD_LEFT);
+
         return "ING-{$sufijo}";
     }
 
@@ -30,12 +30,14 @@ class IngresoController extends Controller
             return $this->getIndex('ingresos', function () {
                 $ingresos = Ingreso::with('proveedor', 'user', 'productos')
                     ->orderBy('id_ingreso', 'desc')->get();
+
                 return view('admin.ingresos.index', compact('ingresos'))->render();
             });
         }
 
         $ingresos = Ingreso::with('proveedor', 'user', 'productos')
             ->orderBy('id_ingreso', 'desc')->get();
+
         return view('admin.ingresos.full', compact('ingresos'));
     }
 
@@ -57,6 +59,7 @@ class IngresoController extends Controller
             $productos = Producto::where('estado', 1)->orderBy('nombre')->get();
             $nextId = (Ingreso::max('id_ingreso') ?? 0) + 1;
             $siguienteCorrelativo = $this->generarCorrelativo($nextId);
+
             return view('admin.ingresos.create', compact('proveedores', 'productos', 'siguienteCorrelativo'));
         }
 
@@ -80,16 +83,6 @@ class IngresoController extends Controller
             foreach ($data['productos'] as $p) {
                 $ingreso->productos()->attach($p['producto_id_producto'], [
                     'cantidad' => $p['cantidad'],
-                    'lote' => $p['lote'],
-                    'fecha_vencimiento' => $p['fecha_vencimiento'],
-                ]);
-
-                LoteProducto::create([
-                    'producto_id_producto' => $p['producto_id_producto'],
-                    'codigo_lote' => $p['lote'],
-                    'fecha_vencimiento' => $p['fecha_vencimiento'],
-                    'cantidad' => $p['cantidad'],
-                    'ingreso_id_ingreso' => $ingreso->id_ingreso,
                 ]);
 
                 Producto::where('id_producto', $p['producto_id_producto'])
@@ -134,6 +127,7 @@ class IngresoController extends Controller
             $proveedores = Proveedor::where('estado', 1)->orderBy('razon_social')->get();
             $productos = Producto::where('estado', 1)->orderBy('nombre')->get();
             $ingreso->load('productos', 'proveedor');
+
             return view('admin.ingresos.edit', compact('ingreso', 'proveedores', 'productos'));
         }
 
@@ -152,7 +146,6 @@ class IngresoController extends Controller
                     ->decrement('stock', $old->pivot->cantidad);
             }
 
-            $ingreso->lotes()->delete();
             $ingreso->productos()->detach();
 
             $ingreso->update([
@@ -165,16 +158,6 @@ class IngresoController extends Controller
             foreach ($data['productos'] as $p) {
                 $ingreso->productos()->attach($p['producto_id_producto'], [
                     'cantidad' => $p['cantidad'],
-                    'lote' => $p['lote'],
-                    'fecha_vencimiento' => $p['fecha_vencimiento'],
-                ]);
-
-                LoteProducto::create([
-                    'producto_id_producto' => $p['producto_id_producto'],
-                    'codigo_lote' => $p['lote'],
-                    'fecha_vencimiento' => $p['fecha_vencimiento'],
-                    'cantidad' => $p['cantidad'],
-                    'ingreso_id_ingreso' => $ingreso->id_ingreso,
                 ]);
 
                 Producto::where('id_producto', $p['producto_id_producto'])
@@ -226,7 +209,6 @@ class IngresoController extends Controller
                 Producto::where('id_producto', $p->id_producto)
                     ->update(['inventario' => DB::raw('stock')]);
             }
-            $ingreso->lotes()->delete();
             $ingreso->productos()->detach();
             $ingreso->delete();
         });

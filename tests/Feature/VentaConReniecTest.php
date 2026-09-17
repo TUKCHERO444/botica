@@ -3,14 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\Caja;
-use App\Models\LoteProducto;
-use App\Models\Marca;
 use App\Models\Categoria;
 use App\Models\Cliente;
+use App\Models\Marca;
 use App\Models\Producto;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class VentaConReniecTest extends TestCase
@@ -18,13 +18,14 @@ class VentaConReniecTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private Producto $producto;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        app()->make(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+        app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
 
         Permission::firstOrCreate(['name' => 'ventas']);
         Permission::firstOrCreate(['name' => 'productos']);
@@ -56,14 +57,6 @@ class VentaConReniecTest extends TestCase
             'stock' => 50,
             'categoria_id_categoria' => $categoria->id_categoria,
             'marca_id_marca' => $marca->id_marca,
-        ]);
-
-        LoteProducto::create([
-            'producto_id_producto' => $this->producto->id_producto,
-            'codigo_lote' => 'LOTE001',
-            'fecha_vencimiento' => now()->addYear(),
-            'cantidad' => 100,
-            'ingreso_id_ingreso' => null,
         ]);
     }
 

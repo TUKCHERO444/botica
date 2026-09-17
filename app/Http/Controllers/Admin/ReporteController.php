@@ -46,7 +46,7 @@ class ReporteController extends Controller
         $pdf = Pdf::loadView("admin.reportes.pdf.{$tipo}", $viewData);
         $pdf->setPaper('a4', 'landscape');
 
-        $nombre = "reporte-{$tipo}-" . now()->format('Y-m-d-His') . '.pdf';
+        $nombre = "reporte-{$tipo}-".now()->format('Y-m-d-His').'.pdf';
 
         return $pdf->download($nombre);
     }
@@ -76,7 +76,6 @@ class ReporteController extends Controller
         $stockMenorQue = $request->get('stock_menor_que');
         $tipoMovimiento = $request->get('tipo_movimiento');
         $cajaId = $request->get('caja_id');
-        $diasVencimiento = $request->get('dias_vencimiento', 30);
         $limiteClientes = $request->get('limite_clientes', 20);
         $modulo = $request->get('modulo');
         $accion = $request->get('accion');
@@ -100,7 +99,6 @@ class ReporteController extends Controller
             'caja' => $this->reporteService->caja($cajaId, $desde, $hasta),
             'inventario' => $this->reporteService->inventario($categoriaId, $marcaId, $stockMenorQue),
             'kardex' => $this->reporteService->kardex($productoId, $desde, $hasta, $tipoMovimiento),
-            'vencimientos' => $this->reporteService->vencimientos($productoId, $diasVencimiento),
             'clientes' => $this->reporteService->clientes($desde, $hasta, $limiteClientes),
             'general' => $this->reporteService->general($mes, $anio),
             'auditoria' => $this->reporteService->auditoria($modulo, $usuarioId, $accion, $desde, $hasta),
@@ -117,7 +115,6 @@ class ReporteController extends Controller
             'caja' => 'Reporte de Caja',
             'inventario' => 'Reporte de Inventario',
             'kardex' => 'Reporte de Kardex',
-            'vencimientos' => 'Reporte de Vencimientos',
             'clientes' => 'Reporte de Clientes',
             'general' => 'Reporte General del Mes',
             'auditoria' => 'Reporte de Auditoría',

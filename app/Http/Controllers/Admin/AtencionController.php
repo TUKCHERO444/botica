@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Helpers\StockHelper;
+use App\Helpers\KardexHelper;
 use App\Http\Controllers\Admin\Traits\Audita;
 use App\Http\Controllers\Admin\Traits\CacheaPanel;
 use App\Http\Controllers\Controller;
@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 
 class AtencionController extends Controller
 {
-    use CacheaPanel, Audita;
+    use Audita, CacheaPanel;
 
     public function index()
     {
@@ -27,6 +27,7 @@ class AtencionController extends Controller
                 $atenciones = Atencion::with('cliente', 'user', 'productos', 'servicios')
                     ->orderBy('id_atencion', 'desc')->get();
                 $cajaAbierta = Caja::abierta()->exists();
+
                 return view('admin.atenciones.index', compact('atenciones', 'cajaAbierta'))->render();
             });
         }
@@ -34,6 +35,7 @@ class AtencionController extends Controller
         $atenciones = Atencion::with('cliente', 'user', 'productos', 'servicios')
             ->orderBy('id_atencion', 'desc')->get();
         $cajaAbierta = Caja::abierta()->exists();
+
         return view('admin.atenciones.full', compact('atenciones', 'cajaAbierta'));
     }
 
@@ -53,6 +55,7 @@ class AtencionController extends Controller
         if (request()->ajax()) {
             $productos = Producto::where('estado', 1)->where('stock', '>', 0)->orderBy('nombre')->get();
             $servicios = Servicio::orderBy('nombre')->get();
+
             return view('admin.atenciones.create', compact('productos', 'servicios'));
         }
 
@@ -62,13 +65,14 @@ class AtencionController extends Controller
     public function store(StoreAtencionRequest $request)
     {
         $cajaAbierta = Caja::abierta()->first();
-        if (!$cajaAbierta) {
+        if (! $cajaAbierta) {
             if ($request->ajax()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Debe abrir una caja antes de registrar una atención.',
                 ], 422);
             }
+
             return redirect()->back()->with('error', 'Debe abrir una caja antes de registrar una atención.');
         }
 
@@ -76,7 +80,7 @@ class AtencionController extends Controller
 
         try {
             $atencion = DB::transaction(function () use ($data, $cajaAbierta) {
-                if (empty($data['cliente_id_cliente']) && !empty($data['cliente_data'])) {
+                if (empty($data['cliente_id_cliente']) && ! empty($data['cliente_data'])) {
                     $cliente = Cliente::create([
                         'dni' => $data['cliente_data']['dni'],
                         'nombre' => $data['cliente_data']['nombre'],
@@ -92,11 +96,11 @@ class AtencionController extends Controller
 
                 $total = 0;
 
-                if (!empty($data['productos'])) {
-                    $total += collect($data['productos'])->sum(fn($p) => $p['cantidad'] * $p['precio']);
+                if (! empty($data['productos'])) {
+                    $total += collect($data['productos'])->sum(fn ($p) => $p['cantidad'] * $p['precio']);
                 }
-                if (!empty($data['servicios'])) {
-                    $total += collect($data['servicios'])->sum(fn($s) => $s['precio']);
+                if (! empty($data['servicios'])) {
+                    $total += collect($data['servicios'])->sum(fn ($s) => $s['precio']);
                 }
 
                 $atencion = Atencion::create([
@@ -106,7 +110,7 @@ class AtencionController extends Controller
                     'user_id' => auth()->id(),
                 ]);
 
-                if (!empty($data['productos'])) {
+                if (! empty($data['productos'])) {
                     foreach ($data['productos'] as $p) {
                         $subTotal = $p['cantidad'] * $p['precio'];
                         $atencion->productos()->attach($p['producto_id_producto'], [
@@ -115,11 +119,20 @@ class AtencionController extends Controller
                         ]);
 
                         $producto = Producto::findOrFail($p['producto_id_producto']);
-                        StockHelper::consumir($producto, $p['cantidad'], $atencion, 'atencion');
+                        $producto->decrement('stock', $p['cantidad']);
+                        KardexHelper::registrar(
+                            $producto,
+                            'ATENCION',
+                            'Atencion',
+                            $atencion->id_atencion,
+                            '#'.$atencion->id_atencion,
+                            -$p['cantidad'],
+                            'Atención registrada'
+                        );
                     }
                 }
 
-                if (!empty($data['servicios'])) {
+                if (! empty($data['servicios'])) {
                     foreach ($data['servicios'] as $s) {
                         $atencion->servicios()->attach($s['servicio_id_servicio'], [
                             'subtotal' => $s['precio'],
@@ -146,6 +159,7 @@ class AtencionController extends Controller
                     'message' => $e->getMessage(),
                 ], 422);
             }
+
             return redirect()->back()->with('error', $e->getMessage())->withInput();
         }
 
@@ -172,6 +186,7 @@ class AtencionController extends Controller
             $servicios = Servicio::orderBy('nombre')->get();
             $atencione->load('productos', 'servicios', 'cliente');
             $selectedCliente = $atencione->cliente;
+
             return view('admin.atenciones.edit', compact('atencione', 'productos', 'servicios', 'selectedCliente'));
         }
 
@@ -183,15 +198,19 @@ class AtencionController extends Controller
         $data = $request->validated();
 
         DB::transaction(function () use ($data, $atencione) {
-            StockHelper::revertir($atencione, 'atencion');
+            foreach ($atencione->productos as $old) {
+                Producto::where('id_producto', $old->id_producto)
+                    ->increment('stock', $old->pivot->cantidad);
+            }
+            KardexHelper::eliminarPorReferencia('Atencion', $atencione->id_atencion);
 
             $atencione->productos()->detach();
             $atencione->servicios()->detach();
 
             $total = 0;
 
-            if (!empty($data['productos'])) {
-                $total += collect($data['productos'])->sum(fn($p) => $p['cantidad'] * $p['precio']);
+            if (! empty($data['productos'])) {
+                $total += collect($data['productos'])->sum(fn ($p) => $p['cantidad'] * $p['precio']);
 
                 foreach ($data['productos'] as $p) {
                     $subTotal = $p['cantidad'] * $p['precio'];
@@ -201,12 +220,21 @@ class AtencionController extends Controller
                     ]);
 
                     $producto = Producto::findOrFail($p['producto_id_producto']);
-                    StockHelper::consumir($producto, $p['cantidad'], $atencione, 'atencion');
+                    $producto->decrement('stock', $p['cantidad']);
+                    KardexHelper::registrar(
+                        $producto,
+                        'ATENCION',
+                        'Atencion',
+                        $atencione->id_atencion,
+                        '#'.$atencione->id_atencion,
+                        -$p['cantidad'],
+                        'Atención registrada'
+                    );
                 }
             }
 
-            if (!empty($data['servicios'])) {
-                $total += collect($data['servicios'])->sum(fn($s) => $s['precio']);
+            if (! empty($data['servicios'])) {
+                $total += collect($data['servicios'])->sum(fn ($s) => $s['precio']);
 
                 foreach ($data['servicios'] as $s) {
                     $atencione->servicios()->attach($s['servicio_id_servicio'], [
@@ -260,7 +288,12 @@ class AtencionController extends Controller
     public function destroy(Atencion $atencione)
     {
         DB::transaction(function () use ($atencione) {
-            StockHelper::revertir($atencione, 'atencion');
+            foreach ($atencione->productos as $old) {
+                Producto::where('id_producto', $old->id_producto)
+                    ->increment('stock', $old->pivot->cantidad);
+            }
+            KardexHelper::eliminarPorReferencia('Atencion', $atencione->id_atencion);
+
             $atencione->productos()->detach();
             $atencione->servicios()->detach();
 

@@ -18,5 +18,8 @@
         "chart.js": "^4.5.1",
         "leaflet": "^1.9.4",
         "sortablejs": "^1.15.7"
+    },
+    "allowScripts": {
+        "esbuild@0.28.2": true
     }
 }

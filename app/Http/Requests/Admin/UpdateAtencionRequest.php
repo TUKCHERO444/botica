@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Models\LoteProducto;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 
@@ -40,15 +39,17 @@ class UpdateAtencionRequest extends FormRequest
         $validator->after(function ($validator) {
             $productos = $this->input('productos', []);
 
-            if (empty($productos)) return;
+            if (empty($productos)) {
+                return;
+            }
 
             $atencion = $this->route('atencione');
 
-            if (!$atencion || !$atencion->relationLoaded('productos')) {
+            if (! $atencion || ! $atencion->relationLoaded('productos')) {
                 $atencion->load('productos');
             }
 
-            $oldCantidades = $atencion->productos->mapWithKeys(fn($p) => [
+            $oldCantidades = $atencion->productos->mapWithKeys(fn ($p) => [
                 $p->id_producto => $p->pivot->cantidad,
             ]);
 
@@ -57,7 +58,9 @@ class UpdateAtencionRequest extends FormRequest
                     ->where('id_producto', $p['producto_id_producto'])
                     ->first();
 
-                if (!$producto) continue;
+                if (! $producto) {
+                    continue;
+                }
 
                 $disponible = $producto->stock + ($oldCantidades[$p['producto_id_producto']] ?? 0);
 
@@ -65,19 +68,6 @@ class UpdateAtencionRequest extends FormRequest
                     $validator->errors()->add(
                         "productos.{$i}.cantidad",
                         "\"{$producto->nombre}\" — Stock disponible: {$disponible}, solicitado: {$p['cantidad']}."
-                    );
-                    continue;
-                }
-
-                $lotesDisponibles = LoteProducto::where('producto_id_producto', $p['producto_id_producto'])
-                    ->where('cantidad', '>', 0)
-                    ->sum('cantidad')
-                    + ($oldCantidades[$p['producto_id_producto']] ?? 0);
-
-                if ($p['cantidad'] > $lotesDisponibles) {
-                    $validator->errors()->add(
-                        "productos.{$i}.cantidad",
-                        "\"{$producto->nombre}\" — Stock físico en lotes: {$lotesDisponibles}, solicitado: {$p['cantidad']}. Realice un ingreso para reponer inventario."
                     );
                 }
             }

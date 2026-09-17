@@ -8,7 +8,6 @@ use App\Models\Caja;
 use App\Models\Cliente;
 use App\Models\Ingreso;
 use App\Models\KardexMovimiento;
-use App\Models\LoteProducto;
 use App\Models\Producto;
 use App\Models\Venta;
 use Carbon\Carbon;
@@ -124,7 +123,7 @@ class ReporteService
 
         $productos = $query->orderBy('nombre')->get();
 
-        $totalValorizado = $productos->sum(fn($p) => $p->stock * $p->precio_compra);
+        $totalValorizado = $productos->sum(fn ($p) => $p->stock * $p->precio_compra);
         $totalStock = $productos->sum('stock');
 
         return [
@@ -160,35 +159,6 @@ class ReporteService
             'cantidad' => $movimientos->count(),
             'desde' => $desde,
             'hasta' => $hasta,
-        ];
-    }
-
-    public function vencimientos($productoId = null, $dias = null)
-    {
-        $query = LoteProducto::with('producto');
-
-        if ($productoId) {
-            $query->where('producto_id_producto', $productoId);
-        }
-
-        $lotes = $query->orderBy('fecha_vencimiento')->get();
-
-        $ahora = now();
-        $limite = $dias ?: 30;
-
-        $vencidos = $lotes->filter(fn($l) => $l->fecha_vencimiento <= $ahora && $l->cantidad > 0);
-        $criticos = $lotes->filter(fn($l) => $l->fecha_vencimiento > $ahora && $l->fecha_vencimiento <= $ahora->copy()->addDays(7) && $l->cantidad > 0);
-        $proximos = $lotes->filter(fn($l) => $l->fecha_vencimiento > $ahora->copy()->addDays(7) && $l->fecha_vencimiento <= $ahora->copy()->addDays($limite) && $l->cantidad > 0);
-        $vigentes = $lotes->filter(fn($l) => $l->fecha_vencimiento > $ahora->copy()->addDays($limite) && $l->cantidad > 0);
-        $sinStock = $lotes->filter(fn($l) => $l->cantidad <= 0);
-
-        return [
-            'vencidos' => $vencidos,
-            'criticos' => $criticos,
-            'proximos' => $proximos,
-            'vigentes' => $vigentes,
-            'sin_stock' => $sinStock,
-            'total_lotes' => $lotes->count(),
         ];
     }
 

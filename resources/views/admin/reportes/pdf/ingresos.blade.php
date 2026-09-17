@@ -65,12 +65,6 @@
                         <div class="mb-1">
                             {{ $p->nombre }}
                             <span class="badge" style="background:#e0e7ff;color:#3730a3;">x{{ $p->pivot->cantidad }}</span>
-                            @if ($p->pivot->lote)
-                                <span class="badge" style="background:#fef3c7;color:#92400e;">Lote: {{ $p->pivot->lote }}</span>
-                            @endif
-                            @if ($p->pivot->fecha_vencimiento)
-                                <span class="badge" style="background:#fce7f3;color:#9d174d;">Vence: {{ \Carbon\Carbon::parse($p->pivot->fecha_vencimiento)->format('d/m/Y') }}</span>
-                            @endif
                         </div>
                     @endforeach
                 </td>

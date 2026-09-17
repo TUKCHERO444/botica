@@ -34,9 +34,4 @@ class Venta extends Model
         return $this->belongsToMany(Producto::class, 'detalle_venta', 'venta_id_venta', 'producto_id_producto')
             ->withPivot('sub_total', 'cantidad');
     }
-
-    public function lotesConsumidos()
-    {
-        return $this->hasMany(DetalleVentaLote::class, 'venta_id_venta', 'id_venta');
-    }
 }
