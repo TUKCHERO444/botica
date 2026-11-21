@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Public\CarritoController;
 use App\Http\Controllers\Public\ComboController;
 use App\Http\Controllers\Public\HomeController;
+use App\Http\Controllers\Public\PerfilController;
 use App\Http\Controllers\Public\ProductoCatalogoController;
+use App\Http\Controllers\Public\RegistroController;
+use App\Http\Controllers\Public\SesionController;
 use App\Models\Promocion;
 use Illuminate\Support\Facades\Route;
 
@@ -15,6 +17,7 @@ Route::get('/combos/{combo}', [ComboController::class, 'show'])->name('public.co
 
 Route::post('/promociones/{promocion}/click', function (Promocion $promocion) {
     $promocion->increment('clicks');
+
     return response()->json(['success' => true]);
 })->name('public.promociones.click');
 
@@ -24,21 +27,24 @@ Route::get('/productos/{producto}', [ProductoCatalogoController::class, 'show'])
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login-admin');
 });
 
+// El POST queda fuera de "guest" para permitir cambiar de cuenta con una
+// sesión activa: AuthController cierra la sesión anterior antes de autenticar.
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login-admin');
+
 Route::middleware('guest:clientes')->group(function () {
-    Route::get('/registro', [\App\Http\Controllers\Public\RegistroController::class, 'showForm'])->name('public.registro');
-    Route::post('/registro', [\App\Http\Controllers\Public\RegistroController::class, 'register']);
-    Route::get('/iniciar-sesion', [\App\Http\Controllers\Public\SesionController::class, 'showForm'])->name('public.login');
-    Route::post('/iniciar-sesion', [\App\Http\Controllers\Public\SesionController::class, 'login'])->middleware('throttle:login-cliente');
+    Route::get('/registro', [RegistroController::class, 'showForm'])->name('public.registro');
+    Route::post('/registro', [RegistroController::class, 'register']);
+    Route::get('/iniciar-sesion', [SesionController::class, 'showForm'])->name('public.login');
+    Route::post('/iniciar-sesion', [SesionController::class, 'login'])->middleware('throttle:login-cliente');
 });
 
 Route::middleware('auth:clientes')->group(function () {
-    Route::post('/cerrar-sesion', [\App\Http\Controllers\Public\SesionController::class, 'logout'])->name('public.logout');
-    Route::get('/mi-perfil', [\App\Http\Controllers\Public\PerfilController::class, 'show'])->name('public.perfil');
-    Route::put('/mi-perfil', [\App\Http\Controllers\Public\PerfilController::class, 'updateInfo'])->name('public.perfil.update');
-    Route::put('/mi-perfil/password', [\App\Http\Controllers\Public\PerfilController::class, 'updatePassword'])->name('public.perfil.password');
+    Route::post('/cerrar-sesion', [SesionController::class, 'logout'])->name('public.logout');
+    Route::get('/mi-perfil', [PerfilController::class, 'show'])->name('public.perfil');
+    Route::put('/mi-perfil', [PerfilController::class, 'updateInfo'])->name('public.perfil.update');
+    Route::put('/mi-perfil/password', [PerfilController::class, 'updatePassword'])->name('public.perfil.password');
 
     Route::prefix('carrito')->name('public.carrito.')->group(function () {
         Route::get('/', [CarritoController::class, 'index'])->name('index');
