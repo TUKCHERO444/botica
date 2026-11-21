@@ -1,6 +1,6 @@
 # Despliegue en VPS — Botica
 
-> **Última actualización:** 20/11/2026
+> **Última actualización:** 21/11/2026 (ver §18: estado real en producción)
 > **Base verificada:** `composer.json`, `composer.lock`, `package.json`, `vite.config.js`, `.env`, migraciones, `php artisan route:list` (231 rutas), `php artisan about` y `php artisan schedule:list`.
 >
 > Este documento responde a dos preguntas: **qué es el sistema** y **qué necesita exactamente un VPS para servirlo en producción**.
@@ -801,6 +801,37 @@ php artisan up
 
 > En este proyecto varias migraciones históricas fueron reescritas. **No** ejecute `migrate:fresh` en producción para “arreglar” el esquema: perdería todos los datos.
 
+### 14.3. `deploy.sh` (despliegue con verificaciones)
+
+Script versionado en la raíz del repo, se ejecuta en el servidor como `deploy`:
+
+```bash
+./deploy.sh --dry-run     # muestra el plan, no cambia nada
+./deploy.sh               # despliegue real (pide confirmaciones)
+./deploy.sh --si          # sin preguntas
+./deploy.sh --forzar      # ignora el aviso de caja abierta
+./deploy.sh --sin-build   # no recompila assets
+```
+
+Qué comprueba **antes** de tocar nada (si algo falla, aborta):
+
+- rama `master` y árbol de trabajo limpio (sin ediciones manuales en el servidor);
+- commits nuevos respecto a `origin/master`; si no hay, sale sin hacer nada;
+- lista de migraciones nuevas y **análisis del `up()`** buscando `dropColumn`, `dropTable`, `dropIfExists`, `renameColumn`, `truncate` o `->change(`;
+- **caja abierta** (`caja.estado = 'abierta'`): no despliega a mitad de turno;
+- 2 GB libres de disco; ausencia de `public/hot`;
+- **backup verificado** (`gzip -t` + número de tablas igual al de la base).
+
+Después: `composer install` (si cambió) → `down --retry=60 --secret=...` → `git pull --ff-only` → `migrate --force` → `npm ci && build` (si cambió el frontend) → `optimize` → verificación con el secret → `up` → verificación pública de `/`, `/login` y `/up`.
+
+> El bypass de mantenimiento en Laravel 12 es la **ruta** `https://<dominio>/<secret>` (devuelve 302 + cookie `laravel_maintenance`), **no** `?secret=`. El script ya lo usa así.
+
+Si algo falla: revierte el código al commit anterior, reconstruye cachés y vuelve a abrir el sitio. El log queda en `/home/deploy/deploy.log` y el backup previo en `/var/backups/botica/pre-deploy-*.sql.gz`.
+
+Nunca ejecuta `migrate:fresh`, `migrate:refresh`, `migrate:rollback` ni `db:wipe`; solo aplica migraciones **pendientes** (las que no están en la tabla `migrations`).
+
+> **Primera vez / bootstrap:** si el servidor tiene un `deploy.sh` sin versionar (creado antes de subirlo al repo), `git pull` fallará con *“untracked working tree files would be overwritten”*. Solución: `rm -f /var/www/botica/deploy.sh && git pull --ff-only`; a partir de ahí el archivo viene del repo y ya es tracked.
+
 ---
 
 ## 15. Consideraciones específicas de esta aplicación
@@ -848,6 +879,86 @@ php artisan up
 | [`modulo-caja.md`](modulo-caja.md) | Apertura, movimientos, arqueo y cierre |
 | [`modulo-reportes.md`](modulo-reportes.md) | Reportes PDF/CSV |
 | [`plan-lotes-fefo-v2.md`](plan-lotes-fefo-v2.md) | Lotes, FEFO y stock |
+
+---
+
+## 18. Estado real del despliegue en producción (21/11/2026)
+
+Servidor `109.123.241.250` (Ubuntu 24.04.5, 4 vCPU, 8 GB RAM, 96 GB SSD). Aplicación en `/var/www/botica`, propietario `deploy:www-data`, pool PHP-FPM `www` (socket `php8.2-fpm.sock`).
+
+| Elemento | Valor real |
+|---|---|
+| Dominio canónico | `https://bonifarmachiclayo.com` (apex, sin `www`) |
+| `www` | `301` → apex |
+| Certificado | Let's Encrypt en `/etc/letsencrypt/live/bonifarmachiclayo.com/`, vence 19/02/2027 |
+| Renovación | `certbot.timer` activo; `certbot renew --dry-run` verificado OK |
+| nginx | un bloque para el dominio + catch-all `return 444` en 80 y 443 |
+| `APP_URL` | `https://bonifarmachiclayo.com` |
+| `SESSION_SECURE_COOKIE` | `true` (obligatorio con TLS; rompe el login si se activa sin HTTPS) |
+| `LOG_STACK` | `daily` |
+| Zona horaria del sistema | `America/Lima` (la app ya usaba `America/Lima` + `DB_TIMEZONE=-05:00`) |
+| SSH root | **deshabilitado** (`/etc/ssh/sshd_config.d/00-hardening.conf`) |
+| SSH por contraseña | deshabilitado; solo clave |
+| Sudo de `deploy` | requiere contraseña; no hay `NOPASSWD` permanente |
+| Backups nginx/.env | `/root/nginx-botica-*.bak` y `/root/env-botica-*.bak` |
+| Backup MySQL | cron de `deploy` a las 02:00 America/Lima → `/var/backups/botica/botica-*.sql.gz`, retención 14 días, log en `backup.log` |
+| Backup **fuera** del VPS | tarea de Windows `Botica - Backup fuera del VPS` (diaria 10:00) ejecuta `D:\BackupsBotica\sync-botica.ps1` → copia el último dump a `D:\BackupsBotica\`, verifica `sha256` + tamaño y retiene 14 archivos; log en `D:\BackupsBotica\sync.log` |
+| Clave de backup | `D:\BackupsBotica\backup_key` (sin passphrase) restringida en el servidor con `restrict,command="/home/deploy/entregar-backup.sh"`: solo puede pedir `latest` y `get <nombre>`; no abre shell ni lee otros archivos. No depende de `ssh-agent` |
+| Firewall | `ufw` activo: `deny incoming`, permite 22/80/443; MySQL solo en `127.0.0.1` |
+| DNS comodín | `A * → 109.123.241.250`; los subdominios futuros resuelven sin tocar Namecheap |
+
+### 18.1. Reglas para añadir nuevas aplicaciones
+
+1. No reutilizar el usuario `deploy` ni el pool `www` para otra aplicación: compartir usuario es compartir secretos (`.env`, base de datos).
+2. Cada aplicación: `/var/www/<app>`, usuario Linux propio, pool PHP-FPM propio (socket propio) y base MySQL con usuario propio.
+3. Cada aplicación: su propio `server` block en `/etc/nginx/sites-available/<app>` con `server_name` único.
+4. El catch-all `return 444` se mantiene como último recurso; una aplicación nunca debe quedar como `default_server`.
+5. DNS: ya existen `A` para el apex y `CNAME www`. Los proyectos futuros van en subdominios (`<app>.bonifarmachiclayo.com`); conviene un `A *` comodín para no volver a tocar Namecheap.
+6. Antes de tocar DNS: `nginx -t`, `systemctl reload nginx` y probar con `curl -H "Host: <dominio>" http://127.0.0.1/`.
+7. Certbot exige que el DNS ya apunte al VPS (validación HTTP-01). Orden correcto: DNS → nginx → certificado → `.env`.
+
+### 18.2. Entorno de staging (21/11/2026)
+
+| Elemento | Valor |
+|---|---|
+| URL | `https://staging.bonifarmachiclayo.com` (HTTP → 301) |
+| Acceso | HTTP Basic Auth, usuario `staging` (contraseña en `/root/staging-basic-pass.txt`, root) |
+| Código | `/var/www/botica-staging`, propietario `staging:www-data` |
+| Pool PHP-FPM | `/etc/php/8.2/fpm/pool.d/staging.conf`, socket `/run/php/php8.2-fpm-staging.sock`, `pm.max_children=3` |
+| Base de datos | `botica_staging` + usuario MySQL `staging` (credenciales en `/root/staging-db.env`) |
+| `.env` | `APP_ENV=production`, `APP_DEBUG=true`, `APP_URL` de staging, `QUEUE_CONNECTION=sync` |
+| Certificado | Let's Encrypt propio, independiente del de producción |
+| Indexación | `X-Robots-Tag: noindex, nofollow` |
+| Cron / colas | ninguno |
+
+Uso:
+
+1. Restaurar el último dump en `botica_staging` (probado: 58 tablas en 3 s).
+2. `git fetch && git checkout <rama>` en `/var/www/botica-staging`.
+3. `php artisan migrate --pretend` → `php artisan migrate --force`.
+4. Pasar el checklist de §2.3 y, si se tocó inventario, `php artisan inventario:conciliar`.
+
+Advertencias: Cloudinary es la misma cuenta (las imágenes subidas en staging conviven con las de producción) y json.pe consume tokens reales.
+
+**Auto-deploy desde GitHub.** `staging-autodeploy.timer` ejecuta cada 2 minutos `staging-autodeploy.service` (Usuario `staging`), que corre `/usr/local/bin/staging-autodeploy.sh`:
+
+1. Solo actúa sobre la rama activa en `/var/www/botica-staging`; si es `master`/`main`, no hace nada.
+2. `git fetch` de esa rama; si no hay commits nuevos, termina sin tocar nada.
+3. Backup de `botica_staging` en `/var/backups/staging/` (conserva 5).
+4. `git reset --hard origin/<rama>`, `composer install` si cambió `composer.json/lock`, `migrate --force`, `npm ci && build` si cambió el frontend, `optimize`.
+5. Si un paso falla, revierte el código al commit anterior y lo registra.
+
+Log: `/var/www/botica-staging/storage/logs/autodeploy.log` · Forzar: `sudo systemctl start staging-autodeploy.service` · Cambiar de rama: `sudo -u staging git -C /var/www/botica-staging checkout <rama>`.
+
+Los cambios locales dentro de staging se descartan en cada despliegue (`reset --hard`): staging siempre refleja GitHub.
+
+### 18.3. Pendiente
+
+- **Contraseña de `admin@sistema.com`: cambiada el 21/11/2026** (verificada con login real; `admin123` ya no funciona).
+- Desactivar `vendedor@sistema.com` si no se usa (sigue con `vendedor123`).
+- Ensayo de restauración: **hecho** en `botica_staging` (58 tablas, `inventario:conciliar` sin diferencias).
+- Nuevos subdominios: crear su `server` block, su pool PHP-FPM, su usuario y su base; luego `certbot --nginx -d <subdominio>`.
+- `storage/fonts/` ya está en `.gitignore` local; falta commit + pull para limpiar el `git status` del servidor.
 
 ---
 
