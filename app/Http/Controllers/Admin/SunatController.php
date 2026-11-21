@@ -53,7 +53,7 @@ class SunatController extends Controller
             ], 422);
         } catch (SunatServiceException $e) {
             logger()->error('SUNAT: Error de servicio', [
-                'ruc' => substr($ruc, 0, 3) . '*****' . substr($ruc, -3),
+                'ruc' => substr($ruc, 0, 3).'*****'.substr($ruc, -3),
                 'error' => $e->getMessage(),
             ]);
 

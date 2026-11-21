@@ -31,13 +31,13 @@ class AuditoriaController extends Controller
             $query->where('descripcion', 'like', "%{$q}%");
         }
 
-        $items = $query->paginate(50);
+        $items = $query->paginate(10)->withQueryString();
 
         $modulos = [
             'productos', 'categorias', 'marcas', 'proveedores',
             'clientes', 'ventas', 'atenciones', 'ingresos',
             'servicios', 'usuarios', 'roles', 'caja',
-            'banners', 'sliders', 'portada-categorias',
+            'banners', 'sliders', 'portada-categorias', 'lotes',
         ];
         $usuarios = User::orderBy('name')->get(['id', 'name', 'email']);
 

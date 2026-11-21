@@ -14,8 +14,18 @@ class CarritoItem extends Model
         'carrito_id_carrito',
         'item_type',
         'item_id',
+        'producto_presentacion_id',
         'cantidad',
+        'precio_unitario',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'cantidad' => 'decimal:3',
+            'precio_unitario' => 'decimal:4',
+        ];
+    }
 
     public function carrito()
     {
@@ -27,28 +37,39 @@ class CarritoItem extends Model
         return $this->morphTo('item', 'item_type', 'item_id');
     }
 
+    public function productoPresentacion()
+    {
+        return $this->belongsTo(ProductoPresentacion::class, 'producto_presentacion_id', 'id_producto_presentacion');
+    }
+
     public function getSubtotalAttribute(): float
     {
-        $precio = match ($this->item_type) {
-            'producto' => $this->item?->precio_venta ?? 0,
-            'combo'    => $this->item?->precio_sugerido ?? 0,
-            default    => 0,
-        };
-        return $precio * $this->cantidad;
+        return (float) $this->precio_unitario * (float) $this->cantidad;
     }
 
     public function getNombreAttribute(): ?string
     {
+        if ($this->item_type === 'producto' && $this->productoPresentacion) {
+            return $this->productoPresentacion->producto?->nombre
+                .' — '.$this->productoPresentacion->nombre_completo;
+        }
+
         return $this->item?->nombre;
     }
 
-    public function getPrecioUnitarioAttribute(): float
+    public function getPrecioUnitarioAttribute($value): float
     {
-        return match ($this->item_type) {
-            'producto' => $this->item?->precio_venta ?? 0,
-            'combo'    => $this->item?->precio_sugerido ?? 0,
-            default    => 0,
-        };
+        if ($value !== null) {
+            return (float) $value;
+        }
+
+        if ($this->item_type === 'producto') {
+            return (float) ($this->productoPresentacion?->precio_venta
+                ?? $this->item?->precio_venta
+                ?? 0);
+        }
+
+        return (float) ($this->item?->precio_sugerido ?? 0);
     }
 
     public function getFotoUrlAttribute(): ?string
@@ -56,6 +77,7 @@ class CarritoItem extends Model
         if ($this->item_type === 'producto') {
             return $this->item?->foto_url;
         }
+
         return $this->item?->imagen_url;
     }
 }

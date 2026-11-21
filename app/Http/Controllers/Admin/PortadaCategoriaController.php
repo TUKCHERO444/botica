@@ -13,7 +13,7 @@ class PortadaCategoriaController extends Controller
 
     public function index()
     {
-        $categorias = Categoria::where('estado', 1)->orderBy('nombre')->get();
+        $categorias = Categoria::where('estado', 1)->orderBy('nombre')->paginate(10)->withQueryString();
         $seleccionadas = PortadaCategoria::orderBy('orden')->pluck('categoria_id_categoria')->toArray();
 
         if (request()->ajax()) {
@@ -30,10 +30,11 @@ class PortadaCategoriaController extends Controller
         if ($existe) {
             $existe->delete();
             $this->auditar('portada-categorias', 'toggle-estado', $categoria->id_categoria, "Quitó la categoría '{$categoria->nombre}' de la portada");
+
             return response()->json([
                 'success' => true,
                 'message' => 'Categoría quitada de la portada',
-                'activa'  => false,
+                'activa' => false,
             ]);
         }
 
@@ -41,21 +42,21 @@ class PortadaCategoriaController extends Controller
 
         PortadaCategoria::create([
             'categoria_id_categoria' => $categoria->id_categoria,
-            'orden'                  => $maxOrden + 1,
+            'orden' => $maxOrden + 1,
         ]);
         $this->auditar('portada-categorias', 'toggle-estado', $categoria->id_categoria, "Agregó la categoría '{$categoria->nombre}' a la portada");
 
         return response()->json([
             'success' => true,
             'message' => 'Categoría agregada a la portada',
-            'activa'  => true,
+            'activa' => true,
         ]);
     }
 
     public function reordenar()
     {
         $data = request()->validate([
-            'items'   => 'required|array',
+            'items' => 'required|array',
             'items.*' => 'required|integer|exists:portada_categoria,id_portada_categoria',
         ]);
 

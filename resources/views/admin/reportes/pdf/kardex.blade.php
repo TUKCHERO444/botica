@@ -27,6 +27,7 @@
 <body>
     <div class="header">
         <h1>{{ $titulo }}</h1>
+        @include('admin.reportes.pdf.partials.negocio')
         @if ($desde || $hasta)
         <p>Período: {{ $desde ?? 'Inicio' }} al {{ $hasta ?? 'Actual' }} | Emitido: {{ now()->format('d/m/Y H:i') }}</p>
         @else
@@ -43,7 +44,7 @@
             </div>
             <div class="item">
                 <div class="lbl">Stock Actual</div>
-                <div class="val">{{ $producto->stock }}</div>
+                <div class="val">{{ $producto->stock_con_unidad }}</div>
             </div>
             <div class="item">
                 <div class="lbl">Precio Venta</div>
@@ -61,6 +62,8 @@
                 <th>Tipo</th>
                 <th>Referencia</th>
                 <th class="text-right">Cantidad</th>
+                <th class="text-right">Costo unit.</th>
+                <th class="text-right">Valor</th>
                 <th class="text-right">Stock Anterior</th>
                 <th class="text-right">Stock Nuevo</th>
                 <th>Observación</th>
@@ -73,21 +76,34 @@
                 <td>{{ $i + 1 }}</td>
                 <td>{{ $m->created_at->format('d/m/Y H:i') }}</td>
                 <td><span class="{{ $m->tipo_movimiento }}">{{ ucfirst($m->tipo_movimiento) }}</span></td>
-                <td>{{ $m->referencia_tipo }} #{{ $m->referencia_id }} ({{ $m->referencia_codigo ?? '-' }})</td>
-                <td class="text-right">{{ $m->cantidad }}</td>
-                <td class="text-right">{{ $m->stock_anterior }}</td>
-                <td class="text-right">{{ $m->stock_nuevo }}</td>
-                <td>{{ $m->observacion ?? '-' }}</td>
+                <td>
+                    {{ $m->referencia_tipo }} #{{ $m->referencia_id }} ({{ $m->referencia_codigo ?? '-' }})
+                    @if ($m->lote_codigo)
+                        <div class="text-muted">Lote {{ $m->lote_codigo }} · vence {{ $m->fecha_vencimiento?->format('d/m/Y') }}</div>
+                    @endif
+                </td>
+                <td class="text-right">{{ \App\Helpers\CantidadHelper::formatear($m->cantidad) }} {{ $m->producto?->unidadBase?->codigo }}</td>
+                <td class="text-right">S/ {{ number_format((float) ($m->costo_unitario_base ?? 0), 4) }}</td>
+                <td class="text-right">S/ {{ number_format(abs((float) $m->cantidad) * (float) ($m->costo_unitario_base ?? 0), 2) }}</td>
+                <td class="text-right">{{ \App\Helpers\CantidadHelper::formatear($m->stock_anterior) }}</td>
+                <td class="text-right">{{ \App\Helpers\CantidadHelper::formatear($m->stock_nuevo) }}</td>
+                <td>
+                    @if ($m->unidad_presentacion)
+                        <div><strong>{{ $m->unidad_presentacion }}</strong> ({{ \App\Helpers\CantidadHelper::formatear($m->cantidad_presentacion) }})</div>
+                    @endif
+                    {{ $m->observacion ?? '-' }}
+                </td>
                 <td>{{ $m->usuario?->name ?? '-' }}</td>
             </tr>
             @empty
-            <tr><td colspan="9" class="text-center" style="color:#999;">No hay movimientos registrados.</td></tr>
+            <tr><td colspan="11" class="text-center" style="color:#999;">No hay movimientos registrados.</td></tr>
             @endforelse
         </tbody>
     </table>
 
     <div class="footer">
-        Página {PAGE_NUM} de {PAGE_COUNT} | Generado por {{ auth()->user()?->name ?? 'Sistema' }}
+        Generado por {{ auth()->user()?->name ?? 'Sistema' }}
     </div>
+@include('admin.reportes.pdf.partials.paginacion')
 </body>
 </html>

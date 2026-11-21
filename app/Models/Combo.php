@@ -20,7 +20,7 @@ class Combo extends Model
     ];
 
     protected $casts = [
-        'activo'          => 'boolean',
+        'activo' => 'boolean',
         'precio_sugerido' => 'decimal:2',
     ];
 
@@ -28,6 +28,6 @@ class Combo extends Model
     {
         return $this->belongsToMany(Producto::class, 'combo_producto',
             'combo_id_combo', 'producto_id_producto')
-            ->withPivot('cantidad');
+            ->withPivot('id_combo_producto', 'producto_presentacion_id', 'cantidad');
     }
 }

@@ -5,21 +5,31 @@ namespace Tests\Feature;
 use App\Models\Categoria;
 use App\Models\Marca;
 use App\Models\Producto;
+use App\Models\UnidadMedida;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CreaProductoConUnidad;
 use Tests\TestCase;
 
 class CatalogoPublicoTest extends TestCase
 {
+    use CreaProductoConUnidad;
     use RefreshDatabase;
 
     private Categoria $catMedicamentos;
+
     private Categoria $catCuidado;
+
     private Marca $marcaGenomelab;
+
     private Marca $marcaNaturals;
+
+    private UnidadMedida $unidad;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->unidad = $this->crearUnidadBase();
 
         $this->catMedicamentos = Categoria::create([
             'nombre' => 'Medicamentos',
@@ -52,7 +62,7 @@ class CatalogoPublicoTest extends TestCase
 
     private function createProducto(array $overrides = []): Producto
     {
-        return Producto::create(array_merge([
+        $producto = Producto::create(array_merge([
             'nombre' => 'Producto Test',
             'descripcion' => 'Descripción test',
             'precio_compra' => 10.00,
@@ -60,9 +70,15 @@ class CatalogoPublicoTest extends TestCase
             'estado' => 1,
             'inventario' => 50,
             'stock' => 20,
+            'stock_minimo' => 5,
+            'unidad_base_id' => $this->unidad->id_unidad_medida,
             'categoria_id_categoria' => $this->catMedicamentos->id_categoria,
             'marca_id_marca' => $this->marcaGenomelab->id_marca,
         ], $overrides));
+
+        $this->crearPresentacionBase($producto, $this->unidad);
+
+        return $producto;
     }
 
     // ==================== LISTADO ====================
@@ -234,7 +250,7 @@ class CatalogoPublicoTest extends TestCase
         $response->assertJsonFragment([
             'nombre' => 'Jarabe',
             'precio' => 25.50,
-            'url'    => $expectedUrl,
+            'url' => $expectedUrl,
         ]);
     }
 
@@ -366,7 +382,7 @@ class CatalogoPublicoTest extends TestCase
     public function test_pagination_appears_with_many_products(): void
     {
         for ($i = 0; $i < 25; $i++) {
-            $this->createProducto(['nombre' => 'Prod ' . str_pad((string) $i, 2, '0', STR_PAD_LEFT)]);
+            $this->createProducto(['nombre' => 'Prod '.str_pad((string) $i, 2, '0', STR_PAD_LEFT)]);
         }
 
         $response = $this->get(route('public.productos.index'));
@@ -379,7 +395,7 @@ class CatalogoPublicoTest extends TestCase
     public function test_pagination_page_2_shows_next_products(): void
     {
         for ($i = 0; $i < 25; $i++) {
-            $this->createProducto(['nombre' => 'Prod ' . str_pad((string) $i, 2, '0', STR_PAD_LEFT)]);
+            $this->createProducto(['nombre' => 'Prod '.str_pad((string) $i, 2, '0', STR_PAD_LEFT)]);
         }
 
         $response = $this->get(route('public.productos.index', ['page' => 2]));

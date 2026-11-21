@@ -1,7 +1,10 @@
-<form action="{{ route('admin.caja.egreso') }}" method="POST" class="p-6">
+<form data-modal-size="md" action="{{ route('admin.caja.egreso') }}" method="POST" class="p-6">
     @csrf
     <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-bold text-stone-800">Registrar egreso</h2>
+        <div>
+            <h2 class="text-lg font-bold text-stone-800">Registrar egreso</h2>
+            <p class="text-xs text-stone-500 mt-1">Efectivo disponible: <span class="font-semibold text-stone-700">S/ {{ number_format((float) $efectivoDisponible, 2) }}</span></p>
+        </div>
         <button type="button" data-close-modal class="text-stone-400 hover:text-stone-600 p-1">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -10,18 +13,49 @@
     </div>
 
     <div class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-stone-700 mb-1">Método de pago <span class="text-red-500">*</span></label>
+                <select name="metodo_pago_id" required
+                    class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                    @foreach ($metodosPago as $metodo)
+                        <option value="{{ $metodo->id_metodo_pago }}">
+                            {{ $metodo->nombre }}{{ $metodo->afecta_efectivo ? ' — efectivo' : ' — digital' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-stone-700 mb-1">Categoría <span class="text-red-500">*</span></label>
+                <select name="categoria" required
+                    class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                    @foreach ($categoriasEgreso as $clave => $etiqueta)
+                        <option value="{{ $clave }}">{{ $etiqueta }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
         <div>
             <label class="block text-sm font-medium text-stone-700 mb-1">Monto a retirar (S/) <span class="text-red-500">*</span></label>
             <input type="number" name="monto" step="0.01" min="0.01" required
                 class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 placeholder="0.00">
+            <p class="text-xs text-stone-400 mt-1">Si el método es efectivo, no puede superar el efectivo disponible.</p>
         </div>
+
         <div>
             <label class="block text-sm font-medium text-stone-700 mb-1">Descripción <span class="text-red-500">*</span></label>
-            <textarea name="descripcion" rows="3" required minlength="5"
+            <textarea name="descripcion" rows="3" required minlength="5" maxlength="500"
                 class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 placeholder="Detalle la razón del egreso..."></textarea>
-            <p class="text-xs text-stone-400 mt-1">Este campo es obligatorio para justificar el egreso.</p>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-stone-700 mb-1">Comprobante / referencia</label>
+            <input type="text" name="comprobante" maxlength="100"
+                class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                placeholder="Opcional: boleta, factura, recibo, N.º de operación">
         </div>
     </div>
 

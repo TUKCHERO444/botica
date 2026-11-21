@@ -23,6 +23,7 @@ class StoreProveedorRequest extends FormRequest
             'distrito' => 'nullable|string|max:100',
             'provincia' => 'nullable|string|max:100',
             'departamento' => 'nullable|string|max:100',
+            'lead_time' => 'nullable|integer|min:0|max:365',
         ];
     }
 }

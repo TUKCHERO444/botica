@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Atencion;
 use App\Models\Producto;
+use App\Models\ProductoLote;
 use App\Models\Venta;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -27,13 +28,78 @@ class DashboardController extends Controller
         $hoy = Carbon::today();
 
         // --- Cards ---
-        $ingresosVentasHoy = Venta::whereDate('created_at', $hoy)->sum('total');
-        $ingresosAtencionesHoy = Atencion::whereDate('created_at', $hoy)->sum('total');
+        $ingresosVentasHoy = Venta::where('estado', Venta::ESTADO_CONFIRMADA)
+            ->whereDate('created_at', $hoy)
+            ->sum('total');
+        $ingresosAtencionesHoy = Atencion::where('estado', Atencion::ESTADO_CONFIRMADA)
+            ->whereDate('created_at', $hoy)
+            ->sum('total');
         $totalIngresosHoy = $ingresosVentasHoy + $ingresosAtencionesHoy;
 
-        $ventasHoy = Venta::whereDate('created_at', $hoy)->count();
-        $atencionesHoy = Atencion::whereDate('created_at', $hoy)->count();
-        $stockBajo = Producto::where('stock', '<=', 5)->count();
+        $ventasHoy = Venta::where('estado', Venta::ESTADO_CONFIRMADA)->whereDate('created_at', $hoy)->count();
+        $atencionesHoy = Atencion::where('estado', Atencion::ESTADO_CONFIRMADA)
+            ->whereDate('created_at', $hoy)
+            ->count();
+
+        // --- Inventario: alertas sobre stock vendible (lotes no vencidos) ---
+        $productosInventario = Producto::query()
+            ->where('estado', 1)
+            ->conStockVendibleCalculado()
+            ->withCount('lotes')
+            ->with('unidadBase')
+            ->get();
+
+        $productosInventario->each(function ($producto) {
+            $producto->stock_vendible = (string) $producto->stock_vendible_calc;
+            $minimo = (float) $producto->stock_minimo;
+            $producto->porcentaje_agotado = $minimo > 0
+                ? round(max(0, (1 - (float) $producto->stock_vendible / $minimo) * 100), 1)
+                : 100;
+        });
+
+        // Solo productos con historial de lotes: evita alertar altas que aún
+        // no pasaron por inventario inicial o una compra.
+        $agotados = $productosInventario->filter(fn ($producto) => $producto->lotes_count > 0
+            && (float) $producto->stock_vendible <= 0);
+
+        $bajos = $productosInventario->filter(fn ($producto) => $producto->lotes_count > 0
+            && (float) $producto->stock_minimo > 0
+            && (float) $producto->stock_vendible > 0
+            && (float) $producto->stock_vendible <= (float) $producto->stock_minimo);
+
+        $stockAgotado = $agotados->count();
+        $stockBajo = $bajos->count();
+
+        $productosRiesgo = $agotados->concat($bajos)
+            ->sortBy(fn ($producto) => (float) $producto->stock_minimo > 0
+                ? (float) $producto->stock_vendible / (float) $producto->stock_minimo
+                : -1)
+            ->take(10)
+            ->values();
+
+        // --- Vencimientos por lote ---
+        $lotesPorVencer = ProductoLote::query()
+            ->where('estado', '!=', 'baja')
+            ->where('cantidad_disponible_base', '>', 0)
+            ->whereDate('fecha_vencimiento', '>=', $hoy->toDateString())
+            ->whereDate('fecha_vencimiento', '<=', $hoy->copy()->addDays(30)->toDateString())
+            ->count();
+
+        $lotesVencidos = ProductoLote::query()
+            ->where('estado', '!=', 'baja')
+            ->where('cantidad_disponible_base', '>', 0)
+            ->whereDate('fecha_vencimiento', '<', $hoy->toDateString())
+            ->count();
+
+        $lotesProximos = ProductoLote::with('producto.unidadBase')
+            ->where('estado', '!=', 'baja')
+            ->where('cantidad_disponible_base', '>', 0)
+            ->whereDate('fecha_vencimiento', '>=', $hoy->toDateString())
+            ->whereDate('fecha_vencimiento', '<=', $hoy->copy()->addDays(30)->toDateString())
+            ->orderBy('fecha_vencimiento')
+            ->orderBy('id')
+            ->limit(6)
+            ->get();
 
         // --- Charts: Últimos 7 días (ventas vs atenciones) ---
         $dias = collect();
@@ -45,6 +111,7 @@ class DashboardController extends Controller
             DB::raw('DATE(created_at) as fecha'),
             DB::raw('SUM(total) as total')
         )
+            ->where('estado', Venta::ESTADO_CONFIRMADA)
             ->where('created_at', '>=', Carbon::today()->subDays(6))
             ->groupBy(DB::raw('DATE(created_at)'))
             ->pluck('total', 'fecha');
@@ -53,41 +120,33 @@ class DashboardController extends Controller
             DB::raw('DATE(created_at) as fecha'),
             DB::raw('SUM(total) as total')
         )
+            ->where('estado', Atencion::ESTADO_CONFIRMADA)
             ->where('created_at', '>=', Carbon::today()->subDays(6))
             ->groupBy(DB::raw('DATE(created_at)'))
             ->pluck('total', 'fecha');
 
-        $etiquetasSemana = $dias->map(fn($d) => Carbon::parse($d)->isoFormat('ddd D/M'));
-        $ventasData = $dias->map(fn($d) => (float)($ventasSemana[$d] ?? 0));
-        $atencionesData = $dias->map(fn($d) => (float)($atencionesSemana[$d] ?? 0));
+        $etiquetasSemana = $dias->map(fn ($d) => Carbon::parse($d)->isoFormat('ddd D/M'));
+        $ventasData = $dias->map(fn ($d) => (float) ($ventasSemana[$d] ?? 0));
+        $atencionesData = $dias->map(fn ($d) => (float) ($atencionesSemana[$d] ?? 0));
 
         // --- Charts: Distribución del mes (ventas vs atenciones) ---
         $inicioMes = Carbon::today()->startOfMonth();
-        $totalVentasMes = Venta::where('created_at', '>=', $inicioMes)->sum('total');
-        $totalAtencionesMes = Atencion::where('created_at', '>=', $inicioMes)->sum('total');
-
-        // --- Productos con riesgo de stock (stock ≤ 20% del inventario) ---
-        $productosRiesgo = Producto::where('inventario', '>', 0)
-            ->whereColumn('stock', '<=', DB::raw('inventario * 0.20'))
-            ->select(
-                'id_producto',
-                'nombre',
-                'stock',
-                'inventario',
-                DB::raw('ROUND((1 - stock / CAST(inventario AS DECIMAL(10,2))) * 100, 1) as porcentaje_agotado')
-            )
-            ->orderByDesc('porcentaje_agotado')
-            ->limit(10)
-            ->get();
+        $totalVentasMes = Venta::where('estado', Venta::ESTADO_CONFIRMADA)
+            ->where('created_at', '>=', $inicioMes)
+            ->sum('total');
+        $totalAtencionesMes = Atencion::where('estado', Atencion::ESTADO_CONFIRMADA)
+            ->where('created_at', '>=', $inicioMes)
+            ->sum('total');
 
         // --- Top 5 productos más vendidos del mes ---
         $topProductos = DB::table('detalle_venta')
             ->join('producto', 'detalle_venta.producto_id_producto', '=', 'producto.id_producto')
             ->join('venta', 'detalle_venta.venta_id_venta', '=', 'venta.id_venta')
+            ->where('venta.estado', Venta::ESTADO_CONFIRMADA)
             ->where('venta.created_at', '>=', $inicioMes)
             ->select(
                 'producto.nombre',
-                DB::raw('SUM(detalle_venta.cantidad) as total_vendido')
+                DB::raw('SUM(detalle_venta.cantidad_base) as total_vendido')
             )
             ->groupBy('producto.id_producto', 'producto.nombre')
             ->orderByDesc('total_vendido')
@@ -95,17 +154,21 @@ class DashboardController extends Controller
             ->get();
 
         return [
-            'totalIngresosHoy'   => $totalIngresosHoy,
-            'ventasHoy'          => $ventasHoy,
-            'atencionesHoy'      => $atencionesHoy,
-            'stockBajo'          => $stockBajo,
-            'chartLabels'        => $etiquetasSemana,
-            'chartVentas'        => $ventasData,
-            'chartAtenciones'    => $atencionesData,
-            'totalVentasMes'     => $totalVentasMes,
+            'totalIngresosHoy' => $totalIngresosHoy,
+            'ventasHoy' => $ventasHoy,
+            'atencionesHoy' => $atencionesHoy,
+            'stockBajo' => $stockBajo,
+            'stockAgotado' => $stockAgotado,
+            'lotesPorVencer' => $lotesPorVencer,
+            'lotesVencidos' => $lotesVencidos,
+            'lotesProximos' => $lotesProximos,
+            'chartLabels' => $etiquetasSemana,
+            'chartVentas' => $ventasData,
+            'chartAtenciones' => $atencionesData,
+            'totalVentasMes' => $totalVentasMes,
             'totalAtencionesMes' => $totalAtencionesMes,
-            'topProductos'       => $topProductos,
-            'productosRiesgo'    => $productosRiesgo,
+            'topProductos' => $topProductos,
+            'productosRiesgo' => $productosRiesgo,
         ];
     }
 }

@@ -14,7 +14,7 @@ class UpdateMarcaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre' => 'required|string|max:50|unique:marca,nombre,' . $this->route('marca')->id_marca . ',id_marca',
+            'nombre' => 'required|string|max:50|unique:marca,nombre,'.$this->route('marca')->id_marca.',id_marca',
             'descripcion' => 'nullable|string|max:50',
 
             'estado' => 'required|integer|in:0,1',

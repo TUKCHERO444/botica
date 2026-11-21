@@ -6,11 +6,31 @@
     </button>
 </div>
 
+{{-- Filtros rápidos de alertas --}}
+<div class="flex flex-wrap gap-2 mb-4">
+    @foreach ([
+        'todos' => ['label' => 'Todos', 'alerta' => null],
+        'riesgo' => ['label' => 'Riesgo', 'alerta' => 'inventario'],
+        'bajo' => ['label' => 'Bajo mínimo', 'alerta' => 'bajo'],
+        'agotado' => ['label' => 'Agotados', 'alerta' => 'agotado'],
+        'por_vencer' => ['label' => 'Por vencer', 'alerta' => 'por_vencer'],
+    ] as $chip)
+        @php($activo = $alerta === $chip['alerta'])
+        <a href="{{ route('admin.productos.index', array_filter(['q' => $search, 'alerta' => $chip['alerta']])) }}"
+            class="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition
+                {{ $activo
+                    ? 'border-stone-800 bg-stone-800 text-white'
+                    : 'border-stone-200 bg-white text-stone-600 hover:bg-stone-50' }}">
+            {{ $chip['label'] }}
+        </a>
+    @endforeach
+</div>
+
 <div class="mb-4 relative autocomplete-wrapper">
     <input type="text"
         class="w-full max-w-md rounded-lg border-2 border-stone-400 bg-white py-2.5 text-sm focus:border-black focus:ring-2 focus:ring-stone-300 placeholder-stone-400"
         data-autocomplete="{{ route('admin.productos.search') }}"
-        data-search-url="{{ route('admin.productos.index') }}"
+        data-search-url="{{ route('admin.productos.index', array_filter(['alerta' => $alerta])) }}"
         placeholder="Buscar producto por nombre..."
         value="{{ $search ?? '' }}" autocomplete="off">
     <div class="autocomplete-dropdown hidden absolute top-full left-0 right-0 max-w-md bg-white border border-stone-300 rounded-lg shadow-lg z-50 mt-1 overflow-hidden"></div>
@@ -34,7 +54,7 @@
             </thead>
             <tbody class="divide-y divide-stone-200">
                 @forelse ($productos as $p)
-                    <tr class="hover:bg-stone-50 transition">
+                    <tr class="hover:bg-stone-50 transition" data-producto-row>
                         <td class="px-4 py-3">
                             @if($p->foto_url)
                                 <img src="{{ $p->foto_url }}" alt="{{ $p->nombre }}"
@@ -48,7 +68,28 @@
                         <td class="hidden sm:table-cell px-4 py-3 text-stone-500">{{ $p->categoria->nombre ?? '—' }}</td>
                         <td class="hidden sm:table-cell px-4 py-3 text-stone-500">{{ $p->marca->nombre ?? '—' }}</td>
                         <td class="px-4 py-3 font-medium text-stone-800">S/ {{ number_format($p->precio_venta, 2) }}</td>
-                        <td class="hidden md:table-cell px-4 py-3 text-stone-500">{{ $p->stock }}</td>
+                        <td class="hidden md:table-cell px-4 py-3 text-stone-500">
+                            @php($vendible = $p->lotes_count > 0 ? (float) $p->stock_vendible_calc : (float) $p->stock)
+                            <div class="flex flex-col gap-1">
+                                <span>{{ $p->stock_formateado }}</span>
+                                @if ($vendible < (float) $p->stock)
+                                    <span class="text-[11px] text-stone-400">
+                                        Vendible: {{ \App\Helpers\CantidadHelper::formatear($vendible) }}
+                                        {{ $p->unidadBase?->codigo }}
+                                    </span>
+                                @endif
+                                <div class="flex flex-wrap gap-1">
+                                    @if ($p->lotes_count > 0 && $vendible <= 0)
+                                        <span class="inline-block rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">Agotado</span>
+                                    @elseif ($p->stock_minimo > 0 && $vendible <= (float) $p->stock_minimo)
+                                        <span class="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Bajo mínimo</span>
+                                    @endif
+                                    @if ($p->lotes_por_vencer_count > 0)
+                                        <span class="inline-block rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700">Por vencer</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </td>
                         <td class="px-4 py-3">
                             @if ($p->estado)
                                 <span class="inline-block bg-emerald-100 text-emerald-700 text-xs font-medium px-2.5 py-0.5 rounded-full">Activo</span>
@@ -88,4 +129,6 @@
             </tbody>
         </table>
     </div>
+
+    @include('admin.partials.pagination', ['items' => $productos])
 </div>

@@ -29,7 +29,12 @@
                         @endif
                         <div class="p-3">
                             <h3 class="text-sm font-semibold text-stone-800 truncate group-hover:text-emerald-700 transition-colors">{{ $prod->nombre }}</h3>
-                            <p class="text-emerald-700 font-bold mt-1">S/ {{ number_format($prod->precio_venta, 2) }}</p>
+                            <p class="text-emerald-700 font-bold mt-1">
+                                @if ($prod->presentaciones->where('activo', true)->count() > 1)
+                                    <span class="text-xs font-medium text-stone-500">Desde</span>
+                                @endif
+                                S/ {{ number_format($prod->precio_desde, 2) }}
+                            </p>
                         </div>
                     </a>
                 </div>

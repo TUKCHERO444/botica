@@ -1,4 +1,4 @@
-<form action="{{ route('admin.proveedores.store') }}" method="POST" class="p-6">
+<form data-modal-size="lg" action="{{ route('admin.proveedores.store') }}" method="POST" class="p-6">
     @csrf
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-lg font-bold text-stone-800">Nuevo proveedor</h2>
@@ -14,7 +14,12 @@
             <label class="block text-sm font-medium text-stone-700 mb-1">RUC</label>
             <div class="flex gap-2">
                 <input type="text" name="ruc" id="ruc-input" required maxlength="11" minlength="11"
-                    class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                    class="w-full min-w-0 flex-1 rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                <button type="button" id="btn-verificar-ruc"
+                    class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    disabled>
+                    Verificar proveedor
+                </button>
                 <button type="button" id="btn-buscar-ruc"
                     class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                     disabled>
@@ -47,6 +52,12 @@
             <label class="block text-sm font-medium text-stone-700 mb-1">Dirección</label>
             <input type="text" name="direccion" maxlength="255"
                 class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-stone-700 mb-1">Lead time <span class="text-stone-400 font-normal">(días, opcional)</span></label>
+            <input type="number" name="lead_time" min="0" max="365" step="1" value="{{ old('lead_time') }}"
+                class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+            <p class="text-xs text-stone-400 mt-1">Días estimados entre el pedido y la recepción.</p>
         </div>
         <div class="grid grid-cols-2 gap-4">
             <div>

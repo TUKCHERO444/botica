@@ -1,59 +1,116 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Botica — Sistema de Gestión Farmacéutica
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplicación Laravel 12 con dos áreas: una **tienda pública** (catálogo, combos, carrito-cotización y perfil de cliente) y un **panel administrativo SPA** (inventario, compras, ventas, atenciones, caja, contenido de portada, auditoría y reportes PDF). Incluye **venta fraccionada** por unidades/presentaciones y **lotes con FEFO** (vencimientos, capas de recepción y bajas auditadas).
 
-## About Laravel
+> Documentación funcional y técnica: [`docs/README.md`](docs/README.md)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- PHP 8.2 · Laravel 12
+- Blade + Tailwind CSS v4 + Vite 7
+- JavaScript vanilla (ES Modules) + Axios
+- MySQL 8 (desarrollo/producción) · SQLite en memoria para tests
+- Spatie Laravel Permission (roles y permisos por módulo)
+- Cloudinary (imágenes) · DomPDF (reportes) · Chart.js · Leaflet
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Puesta en marcha
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+composer run setup      # deps, .env, key, migrate, npm install, build
+composer run dev        # servidor + queue worker + logs + Vite
+```
 
-## Laravel Sponsors
+`composer run setup` no siembra datos. Para cargar el demo:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+php artisan migrate:fresh --seed
+```
 
-### Premium Partners
+> Las migraciones del esquema de venta fraccionada y lotes/FEFO se integraron a las migraciones originales porque el proyecto no tiene datos productivos. En un entorno existente hay que ejecutar `migrate:fresh` o preparar una migración aditiva.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Accesos demo
 
-## Contributing
+| Email | Contraseña | Rol |
+|---|---|---|
+| `admin@sistema.com` | `admin123` | Administrador |
+| `vendedor@sistema.com` | `vendedor123` | Vendedor |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Variables de entorno relevantes
 
-## Code of Conduct
+```env
+DB_CONNECTION=mysql
+DB_DATABASE=botica
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+WHATSAPP_PHONE_NUMBER=51XXXXXXXXX
+JSONPE_API_TOKEN=
+JSONPE_API_URL=https://api.json.pe/api
+```
 
-## Security Vulnerabilities
+Cloudinary se configura con las credenciales del paquete `cloudinary-labs/cloudinary-laravel`. Sin `WHATSAPP_PHONE_NUMBER`, los botones de WhatsApp no se muestran.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## Rutas principales
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+| URL | Área |
+|---|---|
+| `/` | Portada pública |
+| `/productos` | Catálogo |
+| `/productos/{id}` | Detalle de producto |
+| `/combos/{id}` | Detalle de combo |
+| `/registro`, `/iniciar-sesion`, `/mi-perfil`, `/carrito` | Área de cliente |
+| `/login` | Login del panel |
+| `/admin/dashboard` | Panel administrativo |
+
+---
+
+## Estructura
+
+```
+app/
+├── Helpers/{KardexHelper,CantidadHelper}.php
+├── Http/Controllers/{Admin,Public,Api}
+├── Http/Requests/{Admin,Public}
+├── Models/
+├── Services/{Cloudinary,Reniec,Sunat,Reporte,Inventario}Service.php
+└── Providers/AppServiceProvider.php
+
+resources/
+├── js/{admin,public}/
+└── views/{admin,public,layouts,components}/
+
+routes/{web,admin,api}.php
+docs/                  # especificaciones y decisiones
+```
+
+Reglas de arquitectura, permisos, stock/kardex y convenciones de JS: [`docs/arquitectura-y-stack.md`](docs/arquitectura-y-stack.md).
+
+---
+
+## Pruebas y formato
+
+```bash
+composer run test
+php artisan test --filter=nombre_del_test
+./vendor/bin/pint
+```
+
+Estado actual: **122 pruebas pasan** (423 aserciones).
+
+---
+
+## Estado y deuda técnica
+
+Hallazgos conocidos al 18/11/2026:
+
+- `.env.example` aún apunta a SQLite y `APP_NAME=Laravel`.
+- El login del Vendedor redirige al dashboard, para el que su rol no tiene permiso.
+- Los combos todavía usan la presentación base del producto; falta elegir presentación dentro del combo.
+- El código de barras por presentación está preparado en BD, pero sin lector.
+- Los productos sin lotes usan un lote transitorio `SIN-LOTE`; para una botica real debe reemplazarse por inventario físico por lote. Quedan pendientes los reportes de costo/margen por lote.
+
+Detalle completo en [`docs/arquitectura-y-stack.md`](docs/arquitectura-y-stack.md).

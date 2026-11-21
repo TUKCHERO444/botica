@@ -14,10 +14,15 @@
                 <label class="block text-sm font-medium text-stone-700 mb-1">DNI <span class="text-red-500">*</span></label>
                 <div class="flex gap-2">
                     <input type="text" name="dni" id="registro-dni-input" value="{{ old('dni') }}" maxlength="8" required
-                        class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none @error('dni') border-red-400 @enderror"
+                        class="w-full min-w-0 flex-1 rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none @error('dni') border-red-400 @enderror"
                         placeholder="12345678">
+                    <button type="button" id="btn-verificar-dni-registro"
+                        class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                        disabled>
+                        Verificar DNI
+                    </button>
                     <button type="button" id="btn-buscar-dni-registro"
-                        class="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-stone-300 text-white rounded-lg text-sm font-medium transition disabled:cursor-not-allowed flex items-center gap-1"
+                        class="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-stone-300 text-white rounded-lg text-sm font-medium transition disabled:cursor-not-allowed flex items-center gap-1 whitespace-nowrap"
                         data-public="true"
                         disabled>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

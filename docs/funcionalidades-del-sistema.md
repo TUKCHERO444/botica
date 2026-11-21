@@ -1,251 +1,472 @@
 # Funcionalidades del Sistema — Botica
 
-## Visión General
-
-El sistema es una plataforma de gestión farmacéutica que combina un sitio web público para mostrar productos al cliente y un panel administrativo completo para gestionar el inventario, las ventas, las atenciones y el contenido de la página principal.
-
----
-
-## 1. Sitio Web Público
-
-### Página de Inicio (`/`)
-La puerta de entrada del negocio. Muestra:
-
-- **Carrusel de banners**: Imágenes promocionales rotativas que pueden activarse, desactivarse y reordenarse desde el panel administrativo.
-- **Categorías destacadas**: Píldoras con las categorías seleccionadas para aparecer en portada. Al hacer clic, se filtra el catálogo por esa categoría.
-- **Sliders de productos**: Tres carruseles horizontales deslizables:
-  - **Más buscados**
-  - **Más vendidos**
-  - **En descuento**
-  Cada slider se administra desde el panel, asignando productos y definiendo su orden de aparición.
-- **Bloques promocionales**: Espacios de imagen promocional estática.
-
-### Catálogo de Productos (`/productos`)
-Escaparate virtual completo:
-
-- Cuadrícula de productos responsive (2 a 5 columnas según la pantalla).
-- **Filtros por categoría**: Sidebar en escritorio, panel deslizante en móvil. Muestra el conteo de productos por categoría.
-- **Búsqueda por nombre**: Filtro en tiempo real mientras el usuario escribe.
-- **Filtro por precio máximo**: Deslizador para acotar resultados.
-- **Filtros vía AJAX**: La cuadrícula se actualiza sin recargar la página. La URL guarda los filtros activos.
-- **Paginación**: 20 productos por página.
-
-### Página de Detalle de Producto (`/productos/{id}`)
-Vista detallada de cada producto:
-
-- **Galería de imágenes**: Hasta 4 fotos con miniaturas seleccionables y rotación automática.
-- **Migas de pan**: Navegación Inicio > Productos > Categoría > Producto.
-- **Precio y stock**: Muestra el precio de venta y la disponibilidad (en stock o agotado).
-- **Botón de WhatsApp**: Enlace directo a WhatsApp con un mensaje predefinido preguntando por el producto. Se activa configurando el número en el archivo de entorno.
-- **Productos relacionados**: Hasta 8 productos aleatorios de la misma categoría.
-
-### Búsqueda Global en la Barra de Navegación
-Al escribir en el buscador del menú superior, aparecen sugerencias en vivo con hasta 10 productos (nombre, precio, categoría, imagen).
-
-### Autenticación
-- Página de inicio de sesión para acceder al panel administrativo.
-- Solo los usuarios activos pueden ingresar.
+> **Última actualización:** 20/11/2026
+> **Alcance:** estado funcional vigente del sitio público y del panel administrativo. Verificado contra controladores, rutas, vistas y seeders.
 
 ---
 
-## 2. Panel Administrativo
+## Visión general
 
-El panel funciona como una aplicación de una sola página (SPA): la estructura se carga una vez y la navegación entre módulos ocurre vía AJAX, sin recargar la página completa. El historial del navegador y los botones de retroceso/avance funcionan correctamente.
+La aplicación combina:
 
-### Mecánica General
-- Los formularios de crear y editar se abren en ventanas modales cargadas vía AJAX.
-- Al enviar un formulario, la validación muestra errores en el mismo modal.
-- Al completar una operación, el modal se cierra y el listado se actualiza automáticamente.
-- Notificaciones flotantes (toasts) informan del resultado de cada operación.
-- Toda funcionalidad está protegida por permisos asignados a roles.
+- Una **tienda pública** con portada editable, catálogo, detalle de producto, combos, carrito-cotización y área de cliente.
+- Un **panel administrativo SPA** para inventario, compras, ventas, atenciones, caja, clientes, contenido de portada, auditoría y reportes.
+
+Hay dos tipos de usuario totalmente separados: **administradores** (`users`, guard `web`) y **clientes** (`cliente`, guard `clientes`).
 
 ---
 
-### 2.1. Dashboard (`/admin/dashboard`)
-**Panel de control** con un resumen visual del negocio:
+# 1. Sitio público
 
-- **Tarjetas de resumen**: Ingresos del día, cantidad de ventas del día, cantidad de atenciones del día, productos con stock bajo (5 o menos).
-- **Gráfico de ingresos semanales**: Barras o líneas que comparan ingresos por ventas y atenciones en los últimos 7 días.
-- **Distribución mensual**: Gráfico circular que muestra la proporción de ingresos entre ventas y atenciones en el mes actual.
-- **Top 5 productos más vendidos del mes**: Ranking con barras de porcentaje.
-- **Productos con stock crítico**: Lista de productos cuyo stock está por debajo del 20% del inventario inicial.
+## 1.1. Layout y navegación
 
----
+- **Marquee superior** con los textos activos de `header_text` (ordenables desde el panel). Si no hay textos, muestra un mensaje por defecto.
+- **Navbar** con:
+  - Logo/enlace a inicio.
+  - **Buscador global** con sugerencias en vivo (mínimo 2 caracteres, hasta 10 productos: nombre, precio, categoría, imagen).
+  - Enlace "Nuestros productos".
+  - Login/registro o, si el cliente está autenticado, "Mi Perfil", saludo y cerrar sesión.
+  - Icono de carrito con contador (persistente).
+  - Menú hamburguesa en móvil.
+- **Footer** con mapa Leaflet y datos de contacto.
 
-### 2.2. Módulos de Inventario
+## 1.2. Página de inicio (`/`)
 
-#### Productos (`/admin/productos`)
-**Gestión completa del catálogo de productos**:
+Se compone, en este orden, de:
 
-- Listado de todos los productos con foto miniatura, nombre, categoría, marca, precio, stock y estado.
-- **Crear producto**: Formulario con nombre, descripción, categoría, marca, precio de compra, precio de venta, stock, inventario, estado activo y **subida de múltiples imágenes** (hasta 4 fotos subidas a Cloudinary, reordenables con arrastrar y soltar).
-- **Editar producto**: Misma información precargada. Las imágenes existentes se muestran y pueden reordenarse o eliminarse.
-- **Activar/Desactivar**: Cambio rápido de estado.
-- **Eliminar**: Desactivación suave (el producto se oculta pero no se borra).
+1. **Categorías de portada**: píldoras con las categorías seleccionadas y ordenadas en el panel; enlazan al catálogo filtrado.
+2. **Carrusel de banners**: imágenes activas ordenadas, con título/subtítulo opcional y enlace; rotación automática cada 5 s, flechas, puntos y teclado.
+3. **Bloques de promociones**: grid responsivo de 12 columnas con tres tamaños (`principal`, `secundaria`, `terciaria`). Cada promoción puede ser:
+   - Imagen con enlace manual.
+   - **Descuento** sobre producto, marca o categoría (el enlace se resuelve automáticamente).
+   - **Combo** (enlaza al detalle del combo si está activo).
+   - Cada clic se registra mediante `POST /promociones/{promocion}/click` (contador `clicks`).
+4. **Tres sliders de productos**: "Más buscados", "Más vendidos" y "En descuento". Se administran desde el panel; solo se muestran productos activos y en el orden definido.
 
-#### Categorías (`/admin/categorias`)
-Clasificación de productos:
+> Los sliders, banners, promociones y categorías de portada **no** se generan automáticamente a partir de ventas: su contenido se asigna manualmente en el panel.
 
-- Listado de categorías con nombre, descripción, cantidad de productos asociados y estado.
-- Crear, editar, activar/desactivar y eliminar categorías.
+## 1.3. Catálogo (`/productos`)
 
-#### Marcas (`/admin/marcas`)
-Fabricantes o marcas de productos:
+- Grilla responsive de 2 a 5 columnas, 20 productos por página.
+- **Filtros** (sidebar en escritorio, panel deslizante en móvil):
+  - Categorías (multiselección, con conteo).
+  - Marcas (multiselección, con conteo).
+  - Precio máximo (slider con el rango real del catálogo).
+- Filtrado **AJAX** sin recargar: se actualiza la grilla y la URL (`categorias[]`, `marcas[]`, `precio_max`), por lo que los filtros son compartibles y funcionan con atrás/adelante.
+- **Buscador con autocompletado** dentro del catálogo y en el navbar. Las sugerencias enlazan al detalle; no filtran la grilla por texto.
+- Los productos con varias presentaciones muestran “Desde S/ …” con el menor precio activo.
+- Solo se muestran productos con `estado = 1`.
 
-- Listado de marcas con nombre, descripción, cantidad de productos y estado.
-- Crear, editar, activar/desactivar y eliminar marcas.
+## 1.4. Detalle de producto (`/productos/{producto}`)
 
-#### Proveedores (`/admin/proveedores`)
-Empresas que abastecen el inventario:
+- Migas de pan: Inicio > Productos > Categoría > Producto.
+- **Galería** de hasta 4 imágenes: imagen principal, miniaturas, flechas, rotación automática cada 5 s y zoom con el mouse.
+- Precio de venta, marca, categoría y disponibilidad (`stock > 0` o "sin stock").
+- **Selector de presentación** (Caja, Blíster, Tableta, etc.) con precio, stock y paso; la cantidad permite fracciones según la presentación.
+- **Botón de WhatsApp** con mensaje predefinido (solo si `WHATSAPP_PHONE_NUMBER` está configurado).
+- **Añadir al carrito** (requiere sesión de cliente; si no, invita a iniciar sesión) con la presentación y cantidad elegidas.
+- Descripción.
+- Hasta **8 productos relacionados** de la misma categoría, en orden aleatorio.
 
-- Listado con RUC, razón social, condición y estado.
-- Crear, editar, activar/desactivar y eliminar proveedores.
+## 1.5. Combos (`/combos/{combo}`)
 
-#### Ingresos de Inventario (`/admin/ingresos`)
-**Registro de compras y entrada de stock**:
+- Página pública del combo activo.
+- Comparativa: precio regular (suma de productos), precio del combo y ahorro.
+- Lista de productos incluidos y cantidades.
+- Botón de WhatsApp y "Añadir al carrito".
+- Un combo inactivo devuelve 404.
 
-- Listado correlativo de ingresos con proveedor, fecha y usuario que registró.
-- **Crear ingreso**: Seleccionar proveedor, fecha y agregar múltiples productos con cantidades. El sistema genera automáticamente un número correlativo (ING-XXXXXXXX) y actualiza el stock de cada producto.
-- **Ver detalle**: Muestra los productos recibidos con sus cantidades.
-- **Editar**: Permite modificar proveedor, fecha y cantidades. El stock se recalcula.
-- **Eliminar**: Revierte el ingreso y restaura el stock anterior.
+## 1.6. Carrito de compras (requiere sesión de cliente)
 
-#### Servicios (`/admin/servicios`)
-Servicios facturables que ofrece la farmacia (toma de presión, vacunación, etc.):
+Es un **carrito de cotización**, no un checkout con pago:
 
-- Listado con nombre, descripción y precio.
-- Crear, editar y eliminar servicios.
+- Se guarda en base de datos (`carrito` / `carrito_item`), un carrito por cliente.
+- Admite productos con **presentación** y combos; la edición de cantidades permite valores de 1 a 99 y respeta el paso de la presentación (por ejemplo, 0.5 tabletas).
+- Guarda el precio unitario al agregar, para que el carrito no cambie si el precio del producto se modifica después.
+- Actualización de cantidades y eliminación vía AJAX, con recálculo de subtotales, total y contador del navbar.
+- **Descargar PDF** con el detalle (`carrito-YYYYMMDD-HHMMSS.pdf`).
+- **Cotizar por WhatsApp**: genera un mensaje con el detalle, total y datos del cliente, y abre `wa.me`.
+- No revalida stock ni estado del producto al renderizar; la compra real se gestiona en el panel.
+- No descuenta stock ni crea una venta; la venta real se registra en el panel.
 
----
+## 1.7. Registro, login y perfil de cliente
 
-### 2.3. Módulo de Clientes
+| Ruta | Función |
+|---|---|
+| `GET/POST /registro` | Crear cuenta de cliente (`registro_web = true`) e iniciar sesión |
+| `GET/POST /iniciar-sesion` | Login con email/contraseña; registra `ultimo_login` |
+| `POST /cerrar-sesion` | Cerrar sesión del guard `clientes` |
+| `GET /mi-perfil` | Ver datos e historial |
+| `PUT /mi-perfil` | Editar datos personales |
+| `PUT /mi-perfil/password` | Cambiar contraseña (valida la actual, mínimo 8 caracteres) |
 
-#### Clientes (`/admin/clientes`)
-**Gestión de la base de clientes**:
-
-- Listado con DNI y nombre completo.
-- Crear y editar clientes.
-- **Cliente genérico**: Botón para crear instantáneamente un cliente "SIN IDENTIFICAR" para ventas rápidas sin registro.
-- **Búsqueda por DNI o nombre**: Utilizada al crear ventas o atenciones.
-
----
-
-### 2.4. Módulos de Operaciones
-
-#### Ventas (`/admin/ventas`)
-**Registro de transacciones de venta**:
-
-- Listado de todas las ventas con número correlativo, cliente, usuario que registró, total y fecha.
-- **Crear venta**: Requiere una caja abierta. Seleccionar cliente (búsqueda o cliente genérico), agregar productos con cantidades y precios. El sistema calcula el total automáticamente, descuenta del stock y registra el movimiento en la caja.
-- **Ver detalle**: Información completa del cliente, productos vendidos y total.
-- **Editar**: Modificar productos y cantidades. El stock y la caja se ajustan automáticamente.
-- **Eliminar**: Restaura el stock, revierte el movimiento de caja y elimina el registro.
-
-#### Atenciones (`/admin/atenciones`)
-**Registro de consultas o servicios prestados**:
-
-- Similar a ventas, pero permite agregar tanto productos como servicios facturables.
-- Incluye un campo de observaciones.
-- Requiere caja abierta. Descuenta stock de productos y registra el ingreso en caja.
-- Crear, ver detalle, editar y eliminar atenciones.
-
----
-
-### 2.5. Módulo Financiero
-
-#### Caja (`/admin/caja`)
-**Control del efectivo diario**:
-
-- **Apertura de caja**: Iniciar un turno con un monto inicial obligatorio. Solo puede haber una caja abierta a la vez.
-- **Resumen de caja abierta**: Muestra el saldo actual (monto inicial + ingresos - egresos).
-- **Registrar egreso manual**: Ingresar un gasto con monto y descripción. Se actualiza el total de egresos.
-- **Cierre de caja**: Finaliza el turno, calcula el monto final (inicial + ingresos - egresos) y marca la caja como cerrada (inmutable).
-- **Registro automático de ingresos**: Cada venta o atención registrada se refleja automáticamente como ingreso en la caja abierta.
-- **Historial**: Listado de cajas cerradas con resumen de movimientos.
-- **Detalle de caja cerrada**: Vista inmutable con todos los movimientos (ingresos por ventas/atenciones, egresos manuales), totales y quién abrió/cerró.
+- El perfil muestra las **últimas 10 ventas** y **últimas 10 atenciones** del cliente.
+- El DNI no es editable desde el perfil.
+- Los clientes web se distinguen en el panel con el indicador "Registrado".
 
 ---
 
-### 2.6. Módulos de Administración de Usuarios
+# 2. Panel administrativo
 
-#### Usuarios (`/admin/usuarios`)
-**Gestión de usuarios del sistema**:
+El panel es una **SPA sobre Blade**: el layout se carga una vez y cada módulo se inyecta vía AJAX en `#panel-content`. Los formularios de crear/editar se abren en modales. Detalle técnico en [`panel-administrativo.md`](panel-administrativo.md).
 
-- Listado con nombre, email, rol asignado y estado (activo/inactivo).
-- Crear y editar usuarios con asignación de rol.
-- Al editar, la contraseña es opcional (solo se actualiza si se escribe una nueva).
-- **Auto-protección**: Un usuario no puede cambiarse su propio rol ni desactivarse a sí mismo.
-- Activar/Desactivar usuarios.
+Funcionamiento general:
 
-#### Roles (`/admin/roles`)
-**Gestión de roles y permisos**:
+- Validación en el modal; los errores 422 se muestran junto a cada campo.
+- Al guardar, el modal se cierra, el listado se recarga y aparece un toast.
+- Eliminar/desactivar pide confirmación.
+- Cada módulo está protegido por `permission:<modulo>`.
+- Las operaciones de escritura de la mayoría de módulos quedan registradas en **Auditoría**.
 
-- Listado de roles con los permisos asignados.
-- Crear rol: Nombre y selección de módulos a los que tendrá acceso.
-- Editar rol: Modificar nombre y permisos. El rol "Administrador" no puede editarse ni eliminarse.
-- **Permisos disponibles**: Acceso completo a cada módulo (dashboard, productos, categorías, marcas, proveedores, clientes, ventas, servicios, atenciones, ingresos, usuarios, roles, caja, sliders, banners, categorías en portada).
-- **Roles por defecto**:
-  - **Administrador**: Acceso a todos los módulos.
-  - **Vendedor**: Acceso solo a ventas y atenciones.
+## 2.1. Dashboard (`/admin/dashboard`)
+
+- **Tarjetas**: ingresos de hoy (ventas + atenciones), ventas de hoy (cantidad), atenciones de hoy (cantidad), stock bajo (stock vendible ≤ mínimo, con contador de agotados) y lotes por vencer (30 días, con contador de vencidos con stock). Las dos tarjetas de inventario enlazan al listado filtrado.
+- **Gráfico de los últimos 7 días**: ingresos por ventas vs. atenciones.
+- **Distribución del mes**: proporción ventas vs. atenciones.
+- **Top 5 productos más vendidos del mes** (por unidades).
+- **Productos en riesgo**: hasta 10 productos activos con stock vendible ≤ `stock_minimo` (incluye agotados). Solo considera productos con historial de lotes, para no alertar altas pendientes de inventario inicial.
+- **Vencimientos próximos**: lotes con stock que vencen en los próximos 30 días, con días restantes y cantidad disponible. Si hay lotes vencidos con stock, se muestra un aviso para darlos de baja.
+
+## 2.2. Inventario
+
+### Productos (`/admin/productos`)
+
+- Listado con imagen principal, nombre, categoría, marca, precio, stock en unidad base y estado.
+- Búsqueda por nombre y autocompletado.
+- **Filtros de alerta**: Todos, Riesgo (bajo mínimo + agotados), Bajo mínimo, Agotados y Por vencer (lotes con stock que vencen en ≤30 días). Los filtros solo consideran productos activos con historial de lotes.
+- La celda de stock muestra el badge **Bajo mínimo**, **Agotado** o **Por vencer** y, si el stock físico incluye lotes vencidos, una línea con el stock vendible.
+- Crear/editar con: nombre, descripción, categoría, marca, **unidad base**, precio de compra (por unidad base), precio de venta base, **stock mínimo**, estado y **hasta 4 imágenes** (JPG/JPEG/PNG/WEBP, máx. 2 MB cada una) subidas a Cloudinary, reordenables por drag-and-drop. El campo legado `inventario` ya no se muestra y el producto nace con **stock 0**; las existencias se cargan desde **Inventario inicial**.
+- **Presentaciones adicionales**: se asignan presentaciones globales con factor (unidades base), precio, paso mínimo y estado. El `paso` se oculta en el formulario normal y solo se muestra en **Configuración avanzada**; por defecto es `1`. La presentación base se crea automáticamente con factor 1 y el precio de venta del producto, y su paso también es editable.
+- Al editar se pueden agregar, reordenar y eliminar imágenes; la eliminación borra también el asset de Cloudinary. Las presentaciones quitadas se desactivan para conservar el historial.
+- Cambio rápido de estado (activar/desactivar).
+- Eliminar = **desactivar** (no borra el registro ni el historial).
+- Botón "Ver Kardex" por producto.
+- Mantiene el contador `cantidad` de categoría y marca.
+- **Precisión decimal:** precios y costos aceptan hasta 2 decimales; cantidades, factores, pasos y stock mínimo hasta 3 decimales. La validación se aplica en navegador y servidor.
+
+### Inventario inicial (`/admin/inventario-inicial`)
+
+- Carga existencias reales de una botica que ya opera, por **lote, vencimiento y costo**, eligiendo la **presentación** de carga (unidad base, caja, blíster, etc.). El sistema convierte cantidad y costo a unidad base para el stock y el kardex.
+- Flujo en dos pasos: **borrador** (no mueve stock) y **confirmado** (crea lote, capa, stock y kardex `INGRESO`).
+- Carga manual para pocos productos, con **buscador dinámico** por nombre; muestra stock actual y advierte si el producto ya tiene stock/lotes.
+- **Borradores editables:** se pueden corregir líneas, cantidades, costos, lotes y vencimientos mientras el inventario esté en borrador. Al confirmar queda inmutable.
+- **Importación CSV**: valida, permite dry-run, reporta errores por fila y puede crear productos, categorías, marcas y presentaciones base.
+- Plantilla CSV descargable y exportación de productos para conteo físico.
+- Solo acepta productos sin stock ni lotes previos; si ya hay stock, se usa un ajuste.
+- El inventario confirmado no se edita ni elimina; las correcciones se hacen con ajustes.
+
+### Combos (`/admin/combos`, permiso `combos`)
+
+- CRUD de combos: nombre, descripción, imagen (Cloudinary), precio sugerido, estado activo y productos con cantidades.
+- Búsqueda de productos y combos para autocompletado.
+- El detalle público compara el precio regular con el precio del combo.
+
+### Categorías (`/admin/categorias`)
+
+- CRUD con nombre, descripción, cantidad de productos y estado.
+- Activar/desactivar y eliminar.
+
+### Marcas (`/admin/marcas`)
+
+- CRUD con nombre, descripción, cantidad de productos y estado.
+- Activar/desactivar y eliminar.
+
+### Unidades de medida (`/admin/unidades-medida`)
+
+- Catálogo global de unidades base: código, nombre, si permite fracción y presentación base.
+- Se usan al crear productos; el stock se controla en esa unidad.
+- No se puede eliminar una unidad asignada a productos.
+
+### Presentaciones (`/admin/presentaciones`)
+
+- Catálogo global de presentaciones: Unidad, Tableta, Cápsula, Mililitro, Gramo, Caja, Blíster, Frasco, Sobre, Ampolla, Tubo.
+- Se asignan a cada producto con factor, precio, paso configurable (avanzado) y estado.
+- No se puede eliminar una presentación asignada a productos o usada como base de una unidad.
+
+### Compras a proveedores (`/admin/ingresos`)
+
+- Registro de compras con correlativo **CMP-XXXXXXXX**, estado y usuario que registra.
+- **Borrador:** proveedor, fecha, tipo y número de documento, observaciones, pago desde caja o externo, y múltiples productos con presentación, cantidad, **código de lote**, **fecha de vencimiento** y costo unitario. No mueve stock.
+- **Recibir:** crea/actualiza el lote, crea una capa `lote_ingreso`, convierte la cantidad a unidad base, incrementa `producto.stock`, registra `INGRESO` en el kardex y, si corresponde, el egreso de caja.
+- **Anular:** revierte stock, lotes, kardex y caja; solo si el lote no tuvo consumo.
+- Editar y eliminar solo mientras la compra está en borrador.
+- Reporte PDF de compras con filtro por forma de pago y resumen de pagos desde caja vs. fuera de caja.
+- Advertencia visual en el formulario si el costo supera el precio de venta de la presentación.
+
+### Devoluciones a proveedor (`/admin/devoluciones`)
+
+- Devolución por **capa de lote** de una compra recibida, no por FEFO.
+- Correlativo **DVP-XXXXXXXX**.
+- Campos: compra, fecha, motivo, reembolso a caja o externo, método, referencia y líneas con cantidad.
+- Descuenta la capa exacta, `producto_lote`, `producto.stock`, registra `lote_consumo` y kardex `DEVOLUCION`.
+- Reembolso opcional a caja mediante ingreso.
+- Anulación restaura stock, lote y kardex; revierte caja si hubo reembolso.
+- No se puede devolver más de lo disponible, ni líneas de otra compra, ni desde compras en borrador o anuladas.
+
+### Ajustes de inventario (`/admin/ajustes`)
+
+- Documento **inmutable** por lote, en unidad base.
+- Correlativo **AJU-XXXXXXXX**.
+- Tipos: **conteo físico**, **daño**, **vencimiento**, **consumo interno**, **ajuste positivo** y **otro**.
+- **Conteo físico:** se ingresa el stock final contado y el sistema calcula la diferencia.
+- **Ajuste positivo:** crea una capa nueva, suma stock y lote.
+- **Salidas:** descuentan las capas del lote, registran `lote_consumo` y kardex `AJUSTE` negativo.
+- No se edita, elimina ni anula: un error se corrige con otro ajuste.
+- No mueve caja.
+
+### Kardex (`/admin/kardex`)
+
+- Módulo **solo lectura** de `kardex_movimientos`.
+- **Append-only:** no se borra ni regenera; las reversiones se registran como `REVERSION`.
+- Filtros por producto, tipo (`INGRESO`/`VENTA`/`ATENCION`/`AJUSTE`/`BAJA`/`DEVOLUCION`/`REVERSION`), usuario y rango de fechas.
+- Tabla: fecha, producto, presentación, lote, tipo, referencia, cantidad (+/-), stock anterior → stock nuevo, usuario.
+- Vista por producto desde el botón "Ver Kardex" del listado de productos.
+- No se puede crear, editar ni eliminar manualmente.
+
+### Lotes y vencimientos (`/admin/lotes`)
+
+- Listado de lotes con **correlativo autogenerado** (`LOTE-00000001`), producto, código, vencimiento, cantidad disponible y estado visual (`vigente`, `próximo`, `crítico`, `vencido`, `agotado`, `baja`).
+- Filtros por estado y código, incluido **Próximos 30 días** (0–30) y **Críticos** (0–7).
+- **Dar de baja** un lote vencido o bloqueado: descuenta el stock disponible y registra un kardex `BAJA`.
+- El FEFO de ventas y atenciones consume primero el lote que vence antes y excluye vencidos.
+
+### Servicios (`/admin/servicios`)
+
+- CRUD de servicios facturables (nombre, descripción, precio y **costo opcional** para calcular margen).
+- Se usan en las atenciones.
+
+## 2.3. Clientes (`/admin/clientes`)
+
+- Listado con DNI, nombre completo, contacto, estado de registro web y origen.
+- CRUD de clientes con DNI, nombres, email, teléfono, **fecha de nacimiento** y **dirección**.
+- **Cliente genérico**: crea/reutiliza el DNI `00000001` con nombre "SIN IDENTIFICAR" para ventas rápidas.
+- **Consulta RENIEC** por DNI para autocompletar nombres y apellidos.
+- Búsqueda por DNI o nombre usada en ventas y atenciones.
+- Los clientes creados desde ventas/atenciones con datos RENIEC se guardan con `registro_web = false`.
+
+## 2.4. Operaciones
+
+### Ventas (`/admin/ventas`)
+
+- Listado con correlativo **T001-XXXXXXXX**, cliente, usuario, total y fecha.
+- **Requiere una caja abierta** para registrar.
+- Crear: cliente existente, cliente genérico o alta rápida con RENIEC; productos con **presentación**, cantidad y precio; total automático.
+- **Pago obligatorio** con métodos activos mostrados como **botones seleccionables**. En pago único se elige un método y se cobra el total sin pedir monto; con **Pago mixto** se despliegan los importes para repartir el total, se bloquean los botones y se exige que la suma coincida exactamente.
+- Al guardar:
+  - Convierte la cantidad de cada presentación a unidad base y descuenta `producto.stock`.
+  - Aplica **FEFO**: consume primero los lotes que vencen antes y registra `lote_consumo` por capa.
+  - Registra movimientos `VENTA` en kardex con el lote consumido.
+  - Crea un ingreso en la caja abierta y actualiza `total_ingresos`.
+- Editar y eliminar: **no disponibles**. Una venta confirmada conserva su detalle original.
+- **Anular venta** con motivo obligatorio: restaura stock y lotes, registra `REVERSION` en kardex y un egreso compensatorio en la caja de la venta. Si esa caja ya está cerrada, la anulación se bloquea.
+- **Devolución de cliente**: no hay documento aparte. Devolución total = anular la venta; producto no apto = ajuste negativo; devolución parcial = ajuste positivo + egreso manual opcional (o anular + nueva venta). Detalle en `docs/modulo-devoluciones-cliente.md`.
+- Las ventas anuladas se excluyen de reportes y dashboard; en caja quedan el ingreso original y el egreso compensatorio.
+- Ver detalle y reporte PDF de ventas.
+- **Ticket imprimible**: al concretar una venta se abre automáticamente la pantalla del ticket y se lanza el diálogo de impresión. Incluye los botones **Imprimir ticket** y **Volver al panel**. Desde el listado, el botón de impresora abre el mismo ticket en una pestaña nueva.
+- El ticket es una página independiente (`admin.ventas.ticket`) sin el layout del panel, optimizada para impresoras térmicas (58/80 mm). Los datos del negocio, el ancho de papel, la moneda y el pie se configuran en `config/ticket.php` mediante las variables `TICKET_*`.
+
+### Atenciones (`/admin/atenciones`)
+
+- Similar a ventas, pero combina **servicios y productos**.
+- **Requiere caja abierta** y al menos un servicio.
+- **Pago obligatorio**: botones de método con pago único (cobra el total sin monto) o **pago mixto** con desglose de importes; se valida contra el total de productos + servicios.
+- Campo de observaciones (máx. 50 caracteres).
+- Los productos se agregan con presentación y cantidad; descuenta stock base aplicando **FEFO** y registra movimientos `ATENCION` en kardex con los lotes consumidos.
+- Registra el total (productos + servicios) como ingreso de caja, con un movimiento por método de pago.
+- La atención nace **confirmada** con correlativo `A001-XXXXXXXX` y **no se edita ni elimina**; si hubo un error se anula con motivo, revirtiendo stock, kardex y caja.
+- Las atenciones anuladas se excluyen de reportes y dashboard.
+- **Ticket imprimible**: al guardar se abre automáticamente el ticket (dispara el diálogo de impresión) con el desglose de productos, servicios y pagos. Desde el listado y el detalle se puede reimprimir.
+- Ver detalle y reporte PDF.
+
+## 2.5. Finanzas
+
+### Métodos de pago (`/admin/metodos-pago`)
+
+- Entidad dinámica: Efectivo, Yape, Plin, BCP y los que se agreguen.
+- Crear/editar con nombre único y descripción; activar/desactivar.
+- Solo los activos se muestran en ventas y atenciones; los inactivos conservan el historial de pagos ya registrados.
+- Ver `docs/modulo-metodos-pago.md`.
+
+### Caja (`/admin/caja`)
+
+- Solo puede existir **una caja abierta** a la vez.
+- **Apertura**: monto inicial obligatorio; registra usuario y fecha/hora.
+- **Egreso manual**: monto y descripción; actualiza `total_egresos`.
+- **Ingresos automáticos**: cada venta y atención suman a `total_ingresos`.
+- **Cierre**: calcula `monto_final = monto_inicial + total_ingresos - total_egresos`, marca la caja como `cerrada` y registra quién y cuándo cerró.
+- **Historial** de cajas cerradas y detalle inmutable de movimientos.
+- Reporte PDF de caja.
+
+## 2.6. Administración
+
+### Usuarios (`/admin/usuarios`)
+
+- Listado con nombre, email, rol y estado activo.
+- Crear/editar con asignación de rol; la contraseña es opcional al editar.
+- Activar/desactivar.
+- Un usuario no puede cambiarse su propio rol ni desactivarse a sí mismo.
+- Solo usuarios activos pueden iniciar sesión.
+
+### Roles (`/admin/roles`)
+
+- Listado de roles con sus permisos.
+- Crear/editar rol seleccionando módulos completos.
+- El rol **Administrador** no se puede editar ni eliminar.
+- Permisos disponibles: los módulos del panel + `portada.banners`, `portada.header-text`, `portada.categorias`, `portada.promociones` y `combos`.
+
+### Auditoría (`/admin/auditoria`)
+
+- Bitácora de acciones administrativas: crear, actualizar, eliminar y cambio de estado.
+- Guarda módulo, acción, registro afectado, descripción, valores anteriores/nuevos, usuario, IP y fecha.
+- Filtros por módulo, usuario, acción, fechas y texto.
+- Vista de detalle con diferencias campo a campo.
+- Reporte PDF de auditoría.
+
+### Reportes (`/admin/reportes`)
+
+Genera **vista previa HTML**, **PDF A4 horizontal** o **CSV** de **30 reportes**:
+
+| # | Reporte | Filtros principales |
+|---|---|---|
+| 1 | Ventas | Fechas, usuario, cliente |
+| 2 | Atenciones | Fechas, usuario, cliente |
+| 3 | Compras | Fechas, proveedor, usuario, forma de pago |
+| 4 | Caja | Caja o rango de fechas |
+| 5 | Inventario | Categoría, marca, stock máximo, activos/inactivos |
+| 6 | Lotes y costos | Categoría, marca, vencidos o próximos 30/90/180/365 días |
+| 7 | Kardex | Producto, fechas, tipo de movimiento real |
+| 8 | Movimientos especiales | Fechas, tipo, producto, usuario |
+| 9 | Rentabilidad | Fechas, categoría, marca |
+| 10 | Clientes | Fechas, top N |
+| 11 | General del mes | Mes y año |
+| 12 | Auditoría | Módulo, usuario, acción, fechas |
+| 13 | Cobros por método de pago | Fechas, método, origen (ventas/atenciones) |
+| 14 | Ventas por producto | Fechas, categoría, marca |
+| 15 | Resumen diario de ventas | Fechas, usuario |
+| 16 | Ventas por vendedor y hora | Fechas |
+| 17 | Anulaciones | Fechas, usuario |
+| 18 | Compras por proveedor | Fechas |
+| 19 | Evolución de costos | Fechas, proveedor, producto |
+| 20 | Devoluciones a proveedor | Fechas, proveedor |
+| 21 | Ajustes y merma | Fechas, tipo de ajuste |
+| 22 | Rotación y cobertura | Categoría, marca, ventana de días |
+| 23 | Margen agrupado | Fechas, categoría/marca/vendedor |
+| 24 | Servicios | Fechas |
+| 25 | Clientes RFM | Fechas, segmento, límite |
+| 26 | Caja por origen | Fechas |
+| 27 | Resumen gerencial | Fechas |
+| 28 | Clientes nuevos y adopción web | Fechas |
+| 29 | Sugerido de compra | Categoría, marca, ventana de consumo |
+| 30 | Cumpleaños | Próximos 7/30/60/90 días |
+
+## 2.7. Portada
+
+### Sliders (`/admin/sliders`)
+
+- Tres pestañas: **Más buscados**, **Más vendidos** y **En descuento**.
+- Asignar productos con búsqueda/autocompletado, quitar y reordenar.
+- Un producto no puede repetirse dentro del mismo slider.
+
+### Textos del Header (`/admin/header-text`)
+
+- CRUD de textos cortos (máx. 60 caracteres), activo/inactivo y orden.
+- Se muestran en el marquee superior del sitio público, separados por un punto.
+- Reordenamiento drag-and-drop.
+
+### Banners (`/admin/banners`)
+
+- CRUD de imágenes del carrusel: imagen (Cloudinary), título, subtítulo, enlace opcional y estado.
+- Activar/desactivar y reordenar.
+- Reemplazar la imagen elimina el asset anterior de Cloudinary.
+
+### Categorías en Portada (`/admin/portada-categorias`)
+
+- Selección de categorías visibles en la portada y su orden.
+- Activar/desactivar con un clic; reordenar.
+
+### Promociones (`/admin/promociones`)
+
+- CRUD de bloques promocionales: imagen, título, subtítulo, enlace, layout (`principal`/`secundaria`/`terciaria`), estado y orden.
+- Tipo de promoción:
+  - **Descuento**: ámbito producto/marca/categoría, tipo porcentaje/fijo y valor.
+  - **Combo**: combo asociado.
+  - Sin tipo: enlace manual.
+- Buscador de entidades para el ámbito del descuento.
+- Reordenamiento drag-and-drop y contador de clics.
 
 ---
 
-### 2.7. Módulos de Gestión de Portada
-
-#### Sliders (`/admin/sliders`)
-**Productos destacados en la página principal**:
-
-- Tres pestañas para gestionar los sliders "Más buscados", "Más vendidos" y "En descuento".
-- Asignar productos a cada slider mediante búsqueda con autocompletado.
-- Quitar productos individualmente.
-- Reordenar productos dentro de cada slider.
-
-#### Banners (`/admin/banners`)
-**Carrusel de imágenes de la portada**:
-
-- Listado ordenable de banners con imagen en miniatura, título, subtítulo, enlace opcional y estado.
-- Crear banner: Subir imagen (almacenada en Cloudinary), título, subtítulo y enlace.
-- Editar: Modificar cualquier campo o reemplazar la imagen.
-- Activar/Desactivar banners sin eliminarlos.
-- Reordenar mediante entrada numérica con guardado automático.
-
-#### Categorías en Portada (`/admin/portada-categorias`)
-**Selección de categorías visibles en la página principal**:
-
-- Cuadrícula con todas las categorías activas y un interruptor para incluirlas o no en la portada.
-- Orden de aparición configurable.
-- Activación y desactivación con un clic.
-
----
-
-## 3. Roles y Permisos
-
-El sistema maneja dos roles predefinidos:
+# 3. Roles y permisos
 
 | Rol | Acceso |
 |---|---|
-| **Administrador** | Todos los módulos del panel administrativo |
-| **Vendedor** | Ventas y Atenciones (operaciones del día a día) |
+| **Administrador** | Todos los módulos del panel + portada + combos |
+| **Vendedor** | Ventas y Atenciones |
 
-Cada rol tiene acceso completo a los módulos que se le asignan. Si un rol tiene acceso a "Productos", puede ver, crear, editar y eliminar productos dentro de ese módulo.
-
----
-
-## 4. Datos de Demostración
-
-Al iniciar el sistema por primera vez, se crean automáticamente:
-
-- **2 usuarios de prueba**:
-  - `admin@sistema.com` / `admin123` (Administrador)
-  - `vendedor@sistema.com` / `vendedor123` (Vendedor)
-- 6 categorías, 6 marcas, 4 proveedores, 6 clientes
-- 10 productos con imágenes, precios y niveles de stock variados
-- 4 servicios facturables
-- 3 órdenes de compra con productos
-- 4 ventas y 2 atenciones con registros históricos
+Los permisos son **por módulo completo** (no por acción). Quien tiene "Productos" puede ver, crear, editar y desactivar productos. El detalle técnico está en [`arquitectura-y-stack.md`](arquitectura-y-stack.md).
 
 ---
 
-## 5. Tecnología de Imágenes
+# 4. Datos de demostración
 
-Las imágenes de productos y banners se almacenan en **Cloudinary**, un servicio en la nube especializado en imágenes. Esto evita que el servidor local almacene archivos pesados y permite cargar las imágenes de forma óptima según el dispositivo del visitante.
+`php artisan migrate:fresh --seed` crea:
+
+**Usuarios administrativos**
+
+| Email | Contraseña | Rol |
+|---|---|---|
+| `admin@sistema.com` | `admin123` | Administrador |
+| `vendedor@sistema.com` | `vendedor123` | Vendedor |
+
+**Catálogo y operaciones**
+
+- 6 categorías y 6 marcas.
+- 4 proveedores.
+- 6 clientes (incluido "Cliente Generico").
+- 10 productos con precios y stock variados.
+- 5 unidades de medida y 11 presentaciones globales.
+- Cada producto con su presentación base; Paracetamol, Ibuprofeno y Amoxicilina con Caja x 100 y Blíster x 10 adicionales.
+- Un lote de demostración `LOTE-DEMO-*` por producto, con stock disponible y vencimiento a un año.
+- 4 servicios.
+- 3 compras (`CMP-00000001` a `CMP-00000003`) con documento y detalle.
+- 4 ventas históricas.
+- 2 atenciones históricas.
+- Movimientos de kardex coherentes con las operaciones anteriores.
+- 1 caja **abierta** con S/ 200.00 iniciales y los ingresos de las ventas/atenciones demo.
+
+**No se siembran** banners, promociones, combos, sliders ni textos del header: la portada se configura desde el panel.
+
+---
+
+# 5. Requisitos de configuración
+
+| Variable | Uso |
+|---|---|
+| `WHATSAPP_PHONE_NUMBER` | Botones de WhatsApp (producto, combo, carrito) |
+| `JSONPE_API_TOKEN` / `JSONPE_API_URL` | Consulta DNI y RUC (json.pe) |
+| Credenciales de Cloudinary | Imágenes de productos, banners, promociones y combos |
+
+**Imágenes:** Cloudinary almacena los archivos y el sistema guarda `url` + `public_id`. Los productos admiten hasta 4 imágenes (JPG/JPEG/PNG/WEBP, máx. 2 MB); banners, promociones y combos usan una imagen principal. Al reemplazar o eliminar, se borra el asset en Cloudinary.
+
+Si WhatsApp no está configurado, los botones no se renderizan. Si RENIEC/SUNAT fallan, la operación de venta/atención/cliente puede continuar ingresando los datos manualmente (la consulta es opcional).
+
+---
+
+# 6. Limitaciones funcionales conocidas
+
+- El carrito **no genera una venta ni descuenta stock**: es una cotización.
+- No hay pasarela de pago ni checkout.
+- **Venta fraccionada**: los productos se venden por presentaciones globales asignadas (caja, blíster, tableta, ml, g) con precio, factor y paso configurable (por defecto 1); el stock se descuenta en unidad base.
+- **Combos**: todavía usan la presentación base de cada producto; queda pendiente elegir presentación dentro del combo.
+- **Código de barras**: la columna existe en `producto_presentacion`, pero no hay lector ni búsqueda por código.
+- D2 eliminó la creación automática de `SIN-LOTE` y bloquea compras/ventas si el stock no coincide con los lotes. Los lotes heredados se listan con `php artisan inventario:sin-lote` y se regularizan con conteo físico, ajuste e inventario inicial. La columna legado `inventario` sigue oculta y sincronizada.
+- Quedan pendientes los reportes de costo/margen por lote y la bandera de adopción gradual. El reporte de rentabilidad y el de lotes/costos ya están implementados.
+- El buscador del catálogo solo ofrece sugerencias; no filtra la grilla por texto.
+- Los reportes se generan síncronamente (DomPDF), sin cola.
+- La moneda está fijada a **S/** y el formato de fechas a `d/m/Y`.
+- El dashboard usa **stock vendible** (capas de lotes disponibles y no vencidos) como base de las alertas de stock y vencimiento. `inventario` es un campo legado y no participa. Los productos sin lotes (altas pendientes de inventario inicial) no generan alerta de agotado.
+- **Login del Vendedor**: el sistema redirige a `/admin/dashboard`, ruta para la que ese rol no tiene permiso; requiere ajustar el redirect o el rol. El sidebar tampoco oculta todos los módulos no permitidos.
+
+---
+
+*Para el detalle técnico de cada módulo, consultar los archivos `modulo-*.md` de esta carpeta. La lógica vigente de lotes/FEFO está en [`plan-lotes-fefo-v2.md`](plan-lotes-fefo-v2.md); los planes anteriores de lotes son históricos.*

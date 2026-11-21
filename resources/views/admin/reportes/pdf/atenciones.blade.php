@@ -27,6 +27,7 @@
 <body>
     <div class="header">
         <h1>{{ $titulo }}</h1>
+        @include('admin.reportes.pdf.partials.negocio')
         <p>Período: {{ $desde }} al {{ $hasta }} | Emitido: {{ now()->format('d/m/Y H:i') }}</p>
     </div>
 
@@ -48,7 +49,7 @@
     <table>
         <thead>
             <tr>
-                <th>#</th>
+                <th>Correlativo</th>
                 <th>Fecha</th>
                 <th>Cliente</th>
                 <th>Usuario</th>
@@ -61,13 +62,13 @@
         <tbody>
             @forelse ($atenciones as $i => $a)
             <tr>
-                <td>{{ $i + 1 }}</td>
+                <td>{{ $a->correlativo }}</td>
                 <td>{{ $a->created_at->format('d/m/Y H:i') }}</td>
                 <td>{{ $a->cliente?->nombre }} {{ $a->cliente?->apellido_paterno }}</td>
                 <td>{{ $a->user?->name }}</td>
                 <td>
                     @foreach ($a->productos as $p)
-                        <div class="mb-1">{{ $p->nombre }} <span class="badge" style="background:#e0e7ff;color:#3730a3;">x{{ $p->pivot->cantidad }}</span></div>
+                        <div class="mb-1">{{ $p->nombre }} <span class="badge" style="background:#e0e7ff;color:#3730a3;">x{{ \App\Helpers\CantidadHelper::formatear($p->pivot->cantidad) }} {{ $p->unidadBase?->codigo }}</span></div>
                     @endforeach
                 </td>
                 <td>
@@ -91,7 +92,8 @@
     </table>
 
     <div class="footer">
-        Página {PAGE_NUM} de {PAGE_COUNT} | Generado por {{ auth()->user()?->name ?? 'Sistema' }}
+        Generado por {{ auth()->user()?->name ?? 'Sistema' }}
     </div>
+@include('admin.reportes.pdf.partials.paginacion')
 </body>
 </html>

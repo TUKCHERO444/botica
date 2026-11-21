@@ -230,6 +230,7 @@ const ComboManager = {
             const container = document.getElementById('modal-container');
             const overlay = document.getElementById('modal-overlay');
             if (container) container.innerHTML = res.data;
+            window.AdminModal?.applySizeFromContent();
             if (overlay) overlay.classList.remove('hidden');
         } catch (err) {
             console.error('Error al abrir crear combo:', err);
@@ -242,6 +243,7 @@ const ComboManager = {
             const container = document.getElementById('modal-container');
             const overlay = document.getElementById('modal-overlay');
             if (container) container.innerHTML = res.data;
+            window.AdminModal?.applySizeFromContent();
             if (overlay) overlay.classList.remove('hidden');
         } catch (err) {
             console.error('Error al abrir editar combo:', err);

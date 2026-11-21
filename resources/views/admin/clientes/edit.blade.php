@@ -1,4 +1,4 @@
-<form action="{{ route('admin.clientes.update', $cliente->id_cliente) }}" method="POST" class="p-6">
+<form data-modal-size="lg" action="{{ route('admin.clientes.update', $cliente->id_cliente) }}" method="POST" class="p-6">
     @csrf
     @method('PUT')
     <div class="flex items-center justify-between mb-6">
@@ -45,6 +45,16 @@
         <div>
             <label class="block text-sm font-medium text-stone-700 mb-1">Teléfono <span class="text-stone-400 font-normal">(opcional)</span></label>
             <input type="text" name="telefono" value="{{ $cliente->telefono }}" maxlength="9" placeholder="987654321"
+                class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-stone-700 mb-1">Fecha de nacimiento <span class="text-stone-400 font-normal">(opcional)</span></label>
+            <input type="date" name="fecha_nacimiento" value="{{ $cliente->fecha_nacimiento?->format('Y-m-d') }}" max="{{ now()->toDateString() }}"
+                class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-stone-700 mb-1">Dirección <span class="text-stone-400 font-normal">(opcional)</span></label>
+            <input type="text" name="direccion" value="{{ $cliente->direccion }}" maxlength="255"
                 class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
         </div>
     </div>

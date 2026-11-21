@@ -1,4 +1,4 @@
-<form action="{{ route('admin.usuarios.store') }}" method="POST" class="p-6">
+<form data-modal-size="lg" action="{{ route('admin.usuarios.store') }}" method="POST" class="p-6">
     @csrf
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-lg font-bold text-stone-800">Nuevo usuario</h2>

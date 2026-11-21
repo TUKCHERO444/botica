@@ -14,6 +14,14 @@ const AdminRouter = {
             if (link) {
                 e.preventDefault();
                 this.navigate(link.getAttribute('data-panel'));
+
+                return;
+            }
+
+            const paginationLink = e.target.closest('[data-pagination] a[href], .pagination a[href]');
+            if (paginationLink) {
+                e.preventDefault();
+                this.navigate(paginationLink.getAttribute('href'));
             }
         });
 

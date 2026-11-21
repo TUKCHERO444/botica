@@ -7,19 +7,29 @@ use App\Models\Categoria;
 use App\Models\Cliente;
 use App\Models\Marca;
 use App\Models\Producto;
+use App\Models\ProductoPresentacion;
+use App\Models\UnidadMedida;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Concerns\CreaProductoConUnidad;
+use Tests\Concerns\RegistraPagos;
 use Tests\TestCase;
 
 class VentaConReniecTest extends TestCase
 {
+    use CreaProductoConUnidad;
     use RefreshDatabase;
+    use RegistraPagos;
 
     private User $user;
 
     private Producto $producto;
+
+    private UnidadMedida $unidad;
+
+    private ProductoPresentacion $presentacion;
 
     protected function setUp(): void
     {
@@ -35,6 +45,8 @@ class VentaConReniecTest extends TestCase
         $this->user->givePermissionTo(['ventas', 'productos', 'caja']);
 
         $this->actingAs($this->user);
+
+        $this->unidad = $this->crearUnidadBase();
 
         Caja::create([
             'monto_inicial' => 100,
@@ -55,9 +67,15 @@ class VentaConReniecTest extends TestCase
             'estado' => 1,
             'inventario' => 50,
             'stock' => 50,
+            'stock_minimo' => 5,
+            'unidad_base_id' => $this->unidad->id_unidad_medida,
             'categoria_id_categoria' => $categoria->id_categoria,
             'marca_id_marca' => $marca->id_marca,
         ]);
+
+        $this->crearPresentacionBase($this->producto, $this->unidad);
+        $this->presentacion = $this->producto->presentaciones()->where('es_base', true)->firstOrFail();
+        $this->crearLoteInicial($this->producto, $this->presentacion, 50);
     }
 
     public function test_crear_venta_con_cliente_data_crea_cliente_y_venta(): void
@@ -71,11 +89,12 @@ class VentaConReniecTest extends TestCase
             ],
             'productos' => [
                 [
-                    'producto_id_producto' => $this->producto->id_producto,
+                    'producto_presentacion_id' => $this->presentacion->id_producto_presentacion,
                     'cantidad' => 2,
                     'precio' => 10.50,
                 ],
             ],
+            ...$this->pagos(21),
         ]);
 
         $response->assertStatus(200);
@@ -115,11 +134,12 @@ class VentaConReniecTest extends TestCase
             ],
             'productos' => [
                 [
-                    'producto_id_producto' => $this->producto->id_producto,
+                    'producto_presentacion_id' => $this->presentacion->id_producto_presentacion,
                     'cantidad' => 1,
                     'precio' => 10.50,
                 ],
             ],
+            ...$this->pagos(10.50),
         ]);
 
         $response->assertStatus(200);
@@ -135,11 +155,12 @@ class VentaConReniecTest extends TestCase
         $response = $this->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])->postJson(route('admin.ventas.store'), [
             'productos' => [
                 [
-                    'producto_id_producto' => $this->producto->id_producto,
+                    'producto_presentacion_id' => $this->presentacion->id_producto_presentacion,
                     'cantidad' => 1,
                     'precio' => 10.50,
                 ],
             ],
+            ...$this->pagos(10.50),
         ]);
 
         $response->assertStatus(422);
@@ -159,11 +180,12 @@ class VentaConReniecTest extends TestCase
             ],
             'productos' => [
                 [
-                    'producto_id_producto' => $this->producto->id_producto,
+                    'producto_presentacion_id' => $this->presentacion->id_producto_presentacion,
                     'cantidad' => 1,
                     'precio' => 10.50,
                 ],
             ],
+            ...$this->pagos(10.50),
         ]);
 
         $response->assertStatus(422);
@@ -187,11 +209,12 @@ class VentaConReniecTest extends TestCase
             ],
             'productos' => [
                 [
-                    'producto_id_producto' => $this->producto->id_producto,
+                    'producto_presentacion_id' => $this->presentacion->id_producto_presentacion,
                     'cantidad' => 1,
                     'precio' => 10.50,
                 ],
             ],
+            ...$this->pagos(10.50),
         ]);
 
         $response->assertStatus(422);

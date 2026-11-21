@@ -1,4 +1,4 @@
-<div class="p-6">
+<div data-modal-size="lg" class="p-6">
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-bold text-stone-800">Detalle de Auditoría</h2>
         <button type="button" onclick="AdminModal.close()" class="text-stone-400 hover:text-stone-600">

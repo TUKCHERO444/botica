@@ -25,6 +25,7 @@
 <body>
     <div class="header">
         <h1>{{ $titulo }}</h1>
+        @include('admin.reportes.pdf.partials.negocio')
         <p>Período: {{ $desde }} al {{ $hasta }} | Emitido: {{ now()->format('d/m/Y H:i') }}</p>
     </div>
 
@@ -72,7 +73,8 @@
     </table>
 
     <div class="footer">
-        Página {PAGE_NUM} de {PAGE_COUNT} | Generado por {{ auth()->user()?->name ?? 'Sistema' }}
+        Generado por {{ auth()->user()?->name ?? 'Sistema' }}
     </div>
+@include('admin.reportes.pdf.partials.paginacion')
 </body>
 </html>

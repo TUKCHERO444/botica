@@ -29,7 +29,52 @@
 <body>
     <div class="header">
         <h1>{{ $titulo }}</h1>
+        @include('admin.reportes.pdf.partials.negocio')
         <p>Emitido: {{ now()->format('d/m/Y H:i') }}</p>
+    </div>
+
+    @php
+        $totalInicial = $cajas->sum('monto_inicial');
+        $totalIngresos = $cajas->sum('total_ingresos');
+        $totalEgresos = $cajas->sum('total_egresos');
+        $totalFinal = $cajas->where('estado', 'cerrada')->sum('monto_final');
+        $totalEsperado = $cajas->whereNotNull('efectivo_esperado')->sum('efectivo_esperado');
+        $totalContado = $cajas->whereNotNull('efectivo_contado')->sum('efectivo_contado');
+        $totalDiferencia = $cajas->whereNotNull('diferencia')->sum('diferencia');
+    @endphp
+
+    <div class="caja-card">
+        <h3>Resumen del período ({{ $cajas->count() }} cajas)</h3>
+        <div class="grid">
+            <div class="item">
+                <div class="lbl">Monto inicial</div>
+                <div class="val">S/ {{ number_format((float) $totalInicial, 2) }}</div>
+            </div>
+            <div class="item">
+                <div class="lbl">Ingresos</div>
+                <div class="val" style="color:#065f46;">S/ {{ number_format((float) $totalIngresos, 2) }}</div>
+            </div>
+            <div class="item">
+                <div class="lbl">Egresos</div>
+                <div class="val" style="color:#dc2626;">S/ {{ number_format((float) $totalEgresos, 2) }}</div>
+            </div>
+            <div class="item">
+                <div class="lbl">Monto final (cajas cerradas)</div>
+                <div class="val">S/ {{ number_format((float) $totalFinal, 2) }}</div>
+            </div>
+            <div class="item">
+                <div class="lbl">Efectivo esperado</div>
+                <div class="val">S/ {{ number_format((float) $totalEsperado, 2) }}</div>
+            </div>
+            <div class="item">
+                <div class="lbl">Efectivo contado</div>
+                <div class="val">S/ {{ number_format((float) $totalContado, 2) }}</div>
+            </div>
+            <div class="item">
+                <div class="lbl">Diferencia de arqueos</div>
+                <div class="val" style="color:{{ (float) $totalDiferencia !== 0.0 ? '#dc2626' : '#065f46' }};">S/ {{ number_format((float) $totalDiferencia, 2) }}</div>
+            </div>
+        </div>
     </div>
 
     @forelse ($cajas as $caja)
@@ -65,8 +110,24 @@
                 <div class="val" style="color:#dc2626;">S/ {{ number_format($caja->total_egresos, 2) }}</div>
             </div>
             <div class="item">
-                <div class="lbl">Monto Final</div>
-                <div class="val">S/ {{ number_format($caja->monto_final, 2) }}</div>
+                <div class="lbl">Efectivo Esperado</div>
+                <div class="val">{{ $caja->efectivo_esperado !== null ? 'S/ '.number_format((float) $caja->efectivo_esperado, 2) : '—' }}</div>
+            </div>
+            <div class="item">
+                <div class="lbl">Efectivo Contado</div>
+                <div class="val">{{ $caja->efectivo_contado !== null ? 'S/ '.number_format((float) $caja->efectivo_contado, 2) : '—' }}</div>
+            </div>
+            <div class="item">
+                <div class="lbl">Diferencia</div>
+                <div class="val" style="color:{{ $caja->efectivo_contado !== null && (float) $caja->diferencia !== 0.0 ? '#dc2626' : '#065f46' }};">
+                    {{ $caja->efectivo_contado !== null ? 'S/ '.number_format($caja->diferencia_real, 2) : '—' }}
+                </div>
+            </div>
+            <div class="item">
+                <div class="lbl">Monto Final (contado)</div>
+                <div class="val">
+                    {{ $caja->monto_final !== null ? 'S/ '.number_format((float) $caja->monto_final, 2) : '— (caja abierta)' }}
+                </div>
             </div>
         </div>
 
@@ -76,9 +137,10 @@
                 <tr>
                     <th>#</th>
                     <th>Tipo</th>
+                    <th>Método</th>
                     <th>Monto</th>
+                    <th>Categoría</th>
                     <th>Descripción</th>
-                    <th>Referencia</th>
                     <th>Usuario</th>
                     <th>Fecha</th>
                 </tr>
@@ -88,9 +150,10 @@
                 <tr>
                     <td>{{ $j + 1 }}</td>
                     <td><span class="{{ $m->tipo == 'ingreso' ? 'movimiento-ingreso' : 'movimiento-egreso' }}">{{ ucfirst($m->tipo) }}</span></td>
+                    <td>{{ $m->metodo_label }}{{ $m->afecta_efectivo ? '' : ' (digital)' }}</td>
                     <td>S/ {{ number_format($m->monto, 2) }}</td>
-                    <td>{{ $m->descripcion }}</td>
-                    <td>{{ $m->referencia_tipo }} #{{ $m->referencia_id }}</td>
+                    <td>{{ $m->categoria_label }}</td>
+                    <td>{{ $m->descripcion_visible }}</td>
                     <td>{{ $m->user?->name ?? '-' }}</td>
                     <td>{{ $m->created_at?->format('d/m/Y H:i') ?? '-' }}</td>
                 </tr>
@@ -104,7 +167,8 @@
     @endforelse
 
     <div class="footer">
-        Página {PAGE_NUM} de {PAGE_COUNT} | Generado por {{ auth()->user()?->name ?? 'Sistema' }}
+        Generado por {{ auth()->user()?->name ?? 'Sistema' }}
     </div>
+@include('admin.reportes.pdf.partials.paginacion')
 </body>
 </html>

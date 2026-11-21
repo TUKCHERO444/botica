@@ -22,7 +22,15 @@ class Proveedor extends Model
         'distrito',
         'provincia',
         'departamento',
+        'lead_time',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'lead_time' => 'integer',
+        ];
+    }
 
     public function ingresos()
     {

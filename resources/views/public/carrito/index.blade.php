@@ -46,7 +46,8 @@
             @foreach($items as $item)
                 <div class="cart-item bg-white rounded-xl border border-stone-200 shadow-sm p-4 flex items-center gap-4"
                      data-item-id="{{ $item->id_carrito_item }}"
-                     data-precio="{{ $item->precio_unitario }}">
+                     data-precio="{{ $item->precio_unitario }}"
+                     data-paso="{{ $item->productoPresentacion?->paso ?? 1 }}">
                     <div class="w-20 h-20 rounded-lg overflow-hidden bg-stone-100 shrink-0">
                         @if($item->foto_url)
                             <img src="{{ $item->foto_url }}" alt="{{ $item->nombre }}"
@@ -68,10 +69,10 @@
                         <p class="text-sm text-stone-500 mt-0.5">S/ <span class="precio-unitario">{{ number_format($item->precio_unitario, 2) }}</span> c/u</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button type="button" class="qty-minus w-8 h-8 rounded-full border border-stone-300 text-stone-600 hover:bg-stone-100 transition flex items-center justify-center text-lg font-medium" {{ $item->cantidad <= 1 ? 'disabled' : '' }}>
+                        <button type="button" class="qty-minus w-8 h-8 rounded-full border border-stone-300 text-stone-600 hover:bg-stone-100 transition flex items-center justify-center text-lg font-medium" {{ (float) $item->cantidad <= (float) ($item->productoPresentacion?->paso ?? 1) ? 'disabled' : '' }}>
                             −
                         </button>
-                        <span class="qty-value w-8 text-center font-semibold text-stone-800 tabular-nums">{{ $item->cantidad }}</span>
+                        <span class="qty-value w-8 text-center font-semibold text-stone-800 tabular-nums">{{ \App\Helpers\CantidadHelper::formatear($item->cantidad) }}</span>
                         <button type="button" class="qty-plus w-8 h-8 rounded-full border border-stone-300 text-stone-600 hover:bg-stone-100 transition flex items-center justify-center text-lg font-medium">
                             +
                         </button>

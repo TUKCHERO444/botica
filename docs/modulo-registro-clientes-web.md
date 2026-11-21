@@ -455,6 +455,16 @@ Los clientes web **NO** usan Spatie Permission. No tienen roles ni permisos. El 
 4. Al seleccionar cliente web, el badge persiste junto al nombre seleccionado
 5. Esto permite al admin identificar clientes que tienen cuenta web
 
+### 14.8 Verificación previa del DNI (ahorro de tokens)
+1. El cliente ingresa su DNI y presiona **Verificar DNI**
+2. El formulario llama a `POST /api/reniec/verificar` (solo BD local, sin API)
+3. Si el DNI existe → mensaje “Este DNI ya está registrado. Acércate a la botica para habilitar tu cuenta.” y se bloquea el envío
+4. Si no existe → se habilita **Buscar DNI**, que recién consulta json.pe y autocompleta nombres y apellidos
+5. Si el DNI cambia, la verificación se reinicia y el botón de API se deshabilita
+
+El endpoint público devuelve únicamente `exists: true/false`, nunca nombres,
+apellidos ni `id_cliente`.
+
 ---
 
 ## 15. Casos Borde y Edge Cases
@@ -463,10 +473,10 @@ Los clientes web **NO** usan Spatie Permission. No tienen roles ni permisos. El 
 |---|---|
 | **Cliente sin email creado desde admin** | `email = null`, no puede iniciar sesión. Sin badge "Registrado". |
 | **Email duplicado** | Validación unique impide duplicados, tanto en registro público como admin. |
-| **DNI duplicado** | Validación unique impide duplicados. |
+| **DNI duplicado** | La verificación previa (`/api/reniec/verificar`) detecta el DNI y bloquea el registro sin consumir API. Si se omite la verificación, la validación `unique` sigue rechazando. |
 | **Admin edita email de cliente web** | El email se muestra como readonly si `registro_web = true`. Debe gestionarse en el cliente directamente o como funcionalidad futura. |
 | **Cliente web eliminado desde admin** | Se elimina el registro de `cliente` normalmente. No hay cuentas huerfanas porque no hay tabla separada de auth. |
-| **Registro con DNI de cliente existente (creado desde admin)** | Unique validation: rechazado. El cliente debe usar otro DNI o el admin debe vincular. |
+| **Registro con DNI de cliente existente (creado desde admin)** | La verificación previa muestra “Este DNI ya está registrado. Acércate a la botica para habilitar tu cuenta.” No se consulta RENIEC ni se muestran datos personales. El admin debe vincular/habilitar la cuenta manualmente si corresponde. |
 | **Cliente web intenta acceder a `/admin`** | El middleware `auth` (guard `web`) redirige al login admin. No hay acceso. |
 | **Admin logueado intenta acceder a `/registro`** | No hay conflicto porque admin usa guard `web` y `/registro` usa middleware `guest:clientes`. |
 | **Cliente logueado intenta acceder a `/registro`** | Redirige al home porque usa middleware `guest:clientes`. |

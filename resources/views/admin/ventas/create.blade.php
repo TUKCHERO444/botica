@@ -1,4 +1,4 @@
-<form action="{{ route('admin.ventas.store') }}" method="POST" class="p-6">
+<form data-modal-size="3xl" action="{{ route('admin.ventas.store') }}" method="POST" class="p-6">
     @csrf
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-lg font-bold text-stone-800">Nueva venta</h2>
@@ -36,45 +36,20 @@
         </div>
 
         <div id="productos-container" class="space-y-2">
-            <div class="producto-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
-                <div class="sm:col-span-5">
-                    <label class="block text-xs font-medium text-stone-600 mb-1">Producto</label>
-                    <select name="productos[0][producto_id_producto]" required
-                        class="producto-select w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
-                        <option value="">Seleccione</option>
-                        @foreach ($productos as $p)
-                            <option value="{{ $p->id_producto }}" data-precio="{{ $p->precio_venta }}" data-stock="{{ $p->stock }}">
-                                {{ $p->nombre }} — S/ {{ number_format($p->precio_venta, 2) }} (Stock: {{ $p->stock }})
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="sm:col-span-2">
-                    <label class="block text-xs font-medium text-stone-600 mb-1">Cantidad</label>
-                    <input type="number" name="productos[0][cantidad]" min="1" value="1" required
-                        class="producto-cantidad w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
-                </div>
-                <div class="sm:col-span-3">
-                    <label class="block text-xs font-medium text-stone-600 mb-1">Precio Unitario (S/)</label>
-                    <input type="number" name="productos[0][precio]" step="0.01" min="0" required readonly
-                        class="producto-precio w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-500 outline-none">
-                </div>
-                <div class="sm:col-span-2 flex items-end pb-1 gap-2">
-                    <span class="producto-subtotal text-sm font-medium text-stone-700 pt-2 hidden sm:block">S/ 0.00</span>
-                    <button type="button" class="eliminar-producto text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition" title="Eliminar">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
+            @include('admin.ventas._producto-row', ['i' => 0])
         </div>
+
+        <template id="producto-row-template">
+            @include('admin.ventas._producto-row', ['i' => 0])
+        </template>
     </div>
 
     <div class="flex items-center justify-end gap-3 mb-4 p-3 bg-emerald-50 rounded-lg">
         <span class="text-sm font-medium text-stone-600">Total:</span>
         <span id="total-venta" class="text-xl font-bold text-emerald-700">S/ 0.00</span>
     </div>
+
+    @include('admin.partials.pagos-form', ['metodosPago' => $metodosPago, 'totalSource' => '#total-venta'])
 
     <div class="flex justify-end gap-3 pt-4 border-t border-stone-200">
         <button type="button" data-close-modal

@@ -57,3 +57,6 @@
 </div>
 
 @vite('resources/js/admin/header-text/index.js')
+
+
+@include('admin.partials.pagination', ['items' => $headerTexts])

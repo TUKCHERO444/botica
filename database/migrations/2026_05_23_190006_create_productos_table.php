@@ -12,11 +12,14 @@ return new class extends Migration
             $table->integer('id_producto')->autoIncrement();
             $table->string('nombre', 50);
             $table->string('descripcion', 50)->nullable();
-            $table->decimal('precio_compra', 10, 2)->nullable();
-            $table->decimal('precio_venta', 10, 2);
+            $table->decimal('precio_compra', 12, 4)->nullable();
+            $table->decimal('precio_venta', 12, 4);
             $table->smallInteger('estado');
-            $table->integer('inventario');
-            $table->integer('stock');
+            $table->decimal('inventario', 12, 3);
+            $table->decimal('stock', 12, 3);
+            $table->decimal('stock_minimo', 12, 3)->default(5);
+            $table->foreignId('unidad_base_id')
+                ->constrained('unidad_medida', 'id_unidad_medida');
             $table->integer('categoria_id_categoria');
             $table->integer('marca_id_marca');
 

@@ -30,7 +30,7 @@ class KardexController extends Controller
             $query->whereDate('created_at', '<=', $hasta);
         }
 
-        $movimientos = $query->paginate(50);
+        $movimientos = $query->paginate(10)->withQueryString();
         $productos = Producto::where('estado', 1)->orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
 
@@ -46,7 +46,8 @@ class KardexController extends Controller
         $movimientos = KardexMovimiento::with('usuario')
             ->where('producto_id', $producto->id_producto)
             ->orderBy('created_at', 'desc')
-            ->paginate(50);
+            ->paginate(10)
+            ->withQueryString();
 
         if (request()->ajax()) {
             return view('admin.kardex.producto', compact('movimientos', 'producto'));

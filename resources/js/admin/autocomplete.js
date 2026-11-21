@@ -104,8 +104,13 @@ function selectResult(input, nombre, searchUrl) {
     const dropdown = input.parentElement?.querySelector('.autocomplete-dropdown');
     if (dropdown) dropdown.classList.add('hidden');
     if (searchUrl && nombre) {
-        AdminRouter.load(`${searchUrl}?q=${encodeURIComponent(nombre)}`, false);
+        AdminRouter.load(buildSearchUrl(searchUrl, nombre), false);
     }
+}
+
+function buildSearchUrl(searchUrl, q) {
+    const separator = searchUrl.includes('?') ? '&' : '?';
+    return `${searchUrl}${separator}q=${encodeURIComponent(q)}`;
 }
 
 function navigateItems(items, dir) {

@@ -12,18 +12,20 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
-    use CacheaPanel, Audita;
+    use Audita, CacheaPanel;
 
     public function index()
     {
         if (request()->ajax()) {
             return $this->getIndex('usuarios', function () {
-                $users = User::with('roles')->orderBy('id', 'desc')->get();
+                $users = User::with('roles')->orderBy('id', 'desc')->paginate(10)->withQueryString();
+
                 return view('admin.usuarios.index', compact('users'))->render();
             });
         }
 
-        $users = User::with('roles')->orderBy('id', 'desc')->get();
+        $users = User::with('roles')->orderBy('id', 'desc')->paginate(10)->withQueryString();
+
         return view('admin.usuarios.full', compact('users'));
     }
 
@@ -31,6 +33,7 @@ class UserController extends Controller
     {
         if (request()->ajax()) {
             $roles = Role::orderBy('name')->pluck('name', 'name');
+
             return view('admin.usuarios.create', compact('roles'));
         }
 
@@ -66,6 +69,7 @@ class UserController extends Controller
         if (request()->ajax()) {
             $roles = Role::orderBy('name')->pluck('name', 'name');
             $userRole = $usuario->roles->first()?->name;
+
             return view('admin.usuarios.edit', compact('usuario', 'roles', 'userRole'));
         }
 
@@ -121,6 +125,7 @@ class UserController extends Controller
             if (request()->ajax()) {
                 return response()->json(['success' => false, 'message' => 'No puedes desactivarte a ti mismo'], 422);
             }
+
             return redirect()->route('admin.usuarios.index')->with('error', 'No puedes desactivarte a ti mismo');
         }
 
@@ -147,6 +152,7 @@ class UserController extends Controller
             if (request()->ajax()) {
                 return response()->json(['success' => false, 'message' => 'No puedes desactivarte a ti mismo'], 422);
             }
+
             return redirect()->route('admin.usuarios.index')->with('error', 'No puedes desactivarte a ti mismo');
         }
 

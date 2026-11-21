@@ -61,9 +61,5 @@
         </table>
     </div>
 
-    @if ($items->hasPages())
-        <div class="px-4 py-3 border-t border-stone-200">
-            {{ $items->appends(request()->query())->links() }}
-        </div>
-    @endif
+    @include('admin.partials.pagination', ['items' => $items])
 </div>

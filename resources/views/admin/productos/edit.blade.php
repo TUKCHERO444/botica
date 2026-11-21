@@ -1,4 +1,4 @@
-<form action="{{ route('admin.productos.update', $producto->id_producto) }}" method="POST" class="p-8" enctype="multipart/form-data">
+<form data-modal-size="3xl" action="{{ route('admin.productos.update', $producto->id_producto) }}" method="POST" class="p-8" enctype="multipart/form-data">
     @csrf
     @method('PUT')
     <div class="flex items-center justify-between mb-8">
@@ -22,7 +22,7 @@
                 <input type="text" name="descripcion" value="{{ $producto->descripcion }}" maxlength="50"
                     class="w-full rounded-lg border border-stone-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <div>
                     <label class="block text-sm font-medium text-stone-700 mb-1.5">Categoría</label>
                     <select name="categoria_id_categoria" required
@@ -43,29 +43,69 @@
                         @endforeach
                     </select>
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1.5">Unidad base <span class="text-red-500">*</span></label>
+                    <select name="unidad_base_id" required
+                        class="w-full rounded-lg border border-stone-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                        <option value="">Seleccione</option>
+                        @foreach ($unidades as $unidad)
+                            <option value="{{ $unidad->id_unidad_medida }}" @selected($producto->unidad_base_id == $unidad->id_unidad_medida)>
+                                {{ $unidad->nombre }} ({{ $unidad->codigo }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-stone-400 mt-1">Unidad en la que se controla el stock.</p>
+                </div>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-stone-700 mb-1.5">P. Compra (S/)</label>
-                    <input type="number" name="precio_compra" value="{{ $producto->precio_compra }}" step="0.01" min="0"
+                    <input type="number" name="precio_compra" value="{{ $producto->precio_compra_input }}" step="0.01" min="0"
                         class="w-full rounded-lg border border-stone-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-stone-700 mb-1.5">P. Venta (S/)</label>
-                    <input type="number" name="precio_venta" value="{{ $producto->precio_venta }}" step="0.01" min="0" required
-                        class="w-full rounded-lg border border-stone-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-stone-700 mb-1.5">Inventario</label>
-                    <input type="number" name="inventario" value="{{ $producto->inventario }}" min="0" required
+                    <input type="number" name="precio_venta" value="{{ $producto->precio_venta_input }}" step="0.01" min="0" required
                         class="w-full rounded-lg border border-stone-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-stone-700 mb-1.5">Stock</label>
-                    <input type="number" name="stock" value="{{ $producto->stock }}" min="0" required
+                    <input type="number" name="stock" value="{{ $producto->stock_input }}" min="0" step="0.001" readonly
+                        class="w-full rounded-lg border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-500 outline-none">
+                    <p class="text-[10px] text-stone-400 mt-1">Se ajusta por ingresos, ventas o lotes.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1.5">Stock mínimo</label>
+                    <input type="number" name="stock_minimo" value="{{ $producto->stock_minimo_input }}" min="0" step="0.001" required
+                        class="w-full rounded-lg border border-stone-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-1.5">Stock máximo</label>
+                    <input type="number" name="stock_maximo" value="{{ $producto->stock_maximo_input }}" min="0" step="0.001"
                         class="w-full rounded-lg border border-stone-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
                 </div>
             </div>
+
+            @php
+                $basePasoValor = old('presentacion_base_paso', $producto->presentacionBase?->paso_input ?? 1);
+                $basePasoAvanzado = (float) $basePasoValor !== 1.0;
+            @endphp
+            <div class="bg-stone-50 border border-stone-200 rounded-lg p-4">
+                <label class="inline-flex items-center gap-2 text-sm font-medium text-stone-700">
+                    <input type="checkbox" id="base-paso-avanzado" @checked($basePasoAvanzado)
+                        class="rounded border-stone-300 text-emerald-600 focus:ring-emerald-500">
+                    Configuración avanzada de la presentación base
+                </label>
+                <div id="base-paso-wrap" class="{{ $basePasoAvanzado ? '' : 'hidden' }} mt-2">
+                    <label class="block text-xs font-medium text-stone-600 mb-1">Incremento mínimo</label>
+                    <input type="number" name="presentacion_base_paso" value="{{ $basePasoValor }}"
+                        step="0.001" min="0.001" max="1"
+                        class="w-full sm:w-40 rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                    <p class="text-xs text-stone-400 mt-1">Ej.: 0.5 permite vender media unidad base. Por defecto se vende en unidades enteras.</p>
+                </div>
+            </div>
+
+            @include('admin.productos._presentaciones', ['producto' => $producto, 'presentaciones' => $presentaciones])
             <div>
                 <label class="block text-sm font-medium text-stone-700 mb-1.5">Estado</label>
                 <select name="estado" required

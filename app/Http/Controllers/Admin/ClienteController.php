@@ -12,14 +12,14 @@ use Illuminate\Http\Request;
 
 class ClienteController extends Controller
 {
-    use CacheaPanel, Audita;
+    use Audita, CacheaPanel;
 
     public function generico()
     {
         $dniGenerico = '00000001';
         $cliente = Cliente::where('dni', $dniGenerico)->first();
 
-        if (!$cliente) {
+        if (! $cliente) {
             $cliente = Cliente::create([
                 'dni' => $dniGenerico,
                 'nombre' => 'SIN IDENTIFICAR',
@@ -47,7 +47,7 @@ class ClienteController extends Controller
     public function search(Request $request)
     {
         $q = $request->get('q');
-        if (!$q || strlen($q) < 2) {
+        if (! $q || strlen($q) < 2) {
             return response()->json([]);
         }
 
@@ -62,16 +62,53 @@ class ClienteController extends Controller
         return response()->json($clientes);
     }
 
+    /**
+     * Verifica un DNI solo contra la base de datos local. No consume la API.
+     */
+    public function verificarDni(Request $request)
+    {
+        $request->validate([
+            'dni' => 'required|string|size:8|regex:/^\d{8}$/',
+        ]);
+
+        $cliente = Cliente::where('dni', $request->input('dni'))->first([
+            'id_cliente', 'nombre', 'apellido_paterno',
+            'apellido_materno', 'dni', 'registro_web',
+        ]);
+
+        if (! $cliente) {
+            return response()->json([
+                'success' => true,
+                'exists' => false,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'exists' => true,
+            'cliente' => [
+                'id_cliente' => $cliente->id_cliente,
+                'nombre' => $cliente->nombre,
+                'apellido_paterno' => $cliente->apellido_paterno,
+                'apellido_materno' => $cliente->apellido_materno,
+                'dni' => $cliente->dni,
+                'registro_web' => $cliente->registro_web,
+            ],
+        ]);
+    }
+
     public function index()
     {
         if (request()->ajax()) {
             return $this->getIndex('clientes', function () {
-                $clientes = Cliente::orderBy('id_cliente', 'desc')->get();
+                $clientes = Cliente::orderBy('id_cliente', 'desc')->paginate(10)->withQueryString();
+
                 return view('admin.clientes.index', compact('clientes'))->render();
             });
         }
 
-        $clientes = Cliente::orderBy('id_cliente', 'desc')->get();
+        $clientes = Cliente::orderBy('id_cliente', 'desc')->paginate(10)->withQueryString();
+
         return view('admin.clientes.full', compact('clientes'));
     }
 

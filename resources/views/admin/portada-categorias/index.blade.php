@@ -39,3 +39,6 @@
 </div>
 
 @vite('resources/js/admin/portada-categorias/index.js')
+
+
+@include('admin.partials.pagination', ['items' => $categorias])

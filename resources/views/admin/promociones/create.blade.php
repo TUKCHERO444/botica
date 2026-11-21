@@ -1,4 +1,4 @@
-<form action="{{ route('admin.promociones.store') }}" method="POST" class="p-6" enctype="multipart/form-data">
+<form data-modal-size="2xl" action="{{ route('admin.promociones.store') }}" method="POST" class="p-6" enctype="multipart/form-data">
     @csrf
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-bold text-stone-800">Nueva promoción</h2>

@@ -7,47 +7,89 @@
 </div>
 
 {{-- Resumen inmutable --}}
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6 mb-6">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6 mb-4">
     <div class="bg-white rounded-xl shadow-sm border border-stone-200 p-4 lg:p-6">
-        <p class="text-xs text-stone-500 font-medium uppercase tracking-wide mb-1">Monto inicial</p>
+        <p class="text-xs text-stone-500 font-medium uppercase tracking-wide mb-1">Fondo inicial</p>
         <p class="text-lg lg:text-xl font-bold text-stone-800">S/ {{ number_format($caja->monto_inicial, 2) }}</p>
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-stone-200 p-4 lg:p-6">
-        <p class="text-xs text-stone-500 font-medium uppercase tracking-wide mb-1">Total ingresos</p>
-        <p class="text-lg lg:text-xl font-bold text-emerald-600">S/ {{ number_format($caja->total_ingresos, 2) }}</p>
+        <p class="text-xs text-stone-500 font-medium uppercase tracking-wide mb-1">Ingresos efectivo</p>
+        <p class="text-lg lg:text-xl font-bold text-emerald-600">S/ {{ number_format($caja->total_ingresos_efectivo, 2) }}</p>
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-stone-200 p-4 lg:p-6">
-        <p class="text-xs text-stone-500 font-medium uppercase tracking-wide mb-1">Total egresos</p>
-        <p class="text-lg lg:text-xl font-bold text-red-600">S/ {{ number_format($caja->total_egresos, 2) }}</p>
+        <p class="text-xs text-stone-500 font-medium uppercase tracking-wide mb-1">Egresos efectivo</p>
+        <p class="text-lg lg:text-xl font-bold text-red-600">S/ {{ number_format($caja->total_egresos_efectivo, 2) }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-emerald-200 bg-emerald-50 p-4 lg:p-6">
+        <p class="text-xs text-emerald-700 font-medium uppercase tracking-wide mb-1">Efectivo esperado</p>
+        <p class="text-lg lg:text-xl font-bold text-emerald-800">
+            {{ $caja->efectivo_esperado === null ? '—' : 'S/ ' . number_format((float) $caja->efectivo_esperado, 2) }}
+        </p>
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-stone-200 p-4 lg:p-6">
-        <p class="text-xs text-stone-500 font-medium uppercase tracking-wide mb-1">Monto final</p>
-        <p class="text-lg lg:text-xl font-bold text-stone-800">S/ {{ number_format($caja->monto_final, 2) }}</p>
-    </div>
-    <div class="bg-white rounded-xl shadow-sm border border-stone-200 p-4 lg:p-6">
-        <p class="text-xs text-stone-500 font-medium uppercase tracking-wide mb-1">Diferencia</p>
-        @php $diferencia = $caja->monto_final - ($caja->monto_inicial + $caja->total_ingresos - $caja->total_egresos); @endphp
-        <p class="text-lg lg:text-xl font-bold {{ $diferencia == 0 ? 'text-emerald-600' : 'text-red-600' }}">
-            S/ {{ number_format($diferencia, 2) }}
+        <p class="text-xs text-stone-500 font-medium uppercase tracking-wide mb-1">Efectivo contado</p>
+        <p class="text-lg lg:text-xl font-bold text-stone-800">
+            {{ $caja->efectivo_contado === null ? '—' : 'S/ ' . number_format((float) $caja->efectivo_contado, 2) }}
         </p>
     </div>
 </div>
 
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm border border-stone-200 px-4 py-3">
+        <p class="text-xs text-stone-500 uppercase tracking-wide">Diferencia del arqueo</p>
+        @if ($caja->efectivo_contado === null)
+            <p class="text-lg font-semibold text-stone-400">Sin arqueo registrado</p>
+        @else
+            <p class="text-lg font-bold {{ (float) $caja->diferencia === 0.0 ? 'text-emerald-600' : 'text-red-600' }}">
+                S/ {{ number_format($caja->diferencia_real, 2) }}
+            </p>
+        @endif
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-stone-200 px-4 py-3">
+        <p class="text-xs text-stone-500 uppercase tracking-wide">Ingresos digitales</p>
+        <p class="text-lg font-semibold text-sky-700">S/ {{ number_format($caja->total_ingresos_digital, 2) }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-stone-200 px-4 py-3">
+        <p class="text-xs text-stone-500 uppercase tracking-wide">Egresos digitales</p>
+        <p class="text-lg font-semibold text-sky-700">S/ {{ number_format($caja->total_egresos_digital, 2) }}</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
     <div class="bg-stone-50 rounded-lg border border-stone-200 p-4">
         <p class="text-xs text-stone-500 font-medium uppercase tracking-wide mb-1">Apertura</p>
         <p class="text-sm font-medium text-stone-700">{{ $caja->apertura_at->format('d/m/Y H:i:s') }}</p>
         <p class="text-sm text-stone-500">por {{ $caja->aperturaUser?->name ?? '—' }}</p>
+        @if ($caja->observacion_apertura)
+            <p class="text-xs text-amber-700 mt-1">{{ $caja->observacion_apertura }}</p>
+        @endif
     </div>
     <div class="bg-stone-50 rounded-lg border border-stone-200 p-4">
         <p class="text-xs text-stone-500 font-medium uppercase tracking-wide mb-1">Cierre</p>
         <p class="text-sm font-medium text-stone-700">{{ $caja->cierre_at?->format('d/m/Y H:i:s') ?? '—' }}</p>
         <p class="text-sm text-stone-500">por {{ $caja->cierreUser?->name ?? '—' }}</p>
     </div>
+    <div class="bg-stone-50 rounded-lg border border-stone-200 p-4">
+        <p class="text-xs text-stone-500 font-medium uppercase tracking-wide mb-1">Arqueo</p>
+        <p class="text-sm font-medium text-stone-700">{{ $caja->arqueo_at?->format('d/m/Y H:i:s') ?? '—' }}</p>
+        <p class="text-sm text-stone-500">por {{ $caja->arqueoUser?->name ?? '—' }}</p>
+    </div>
 </div>
 
+@if ($caja->motivo_diferencia || $caja->observacion_cierre)
+    <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+        <p class="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-1">Justificación del arqueo</p>
+        @if ($caja->motivo_diferencia)
+            <p class="text-sm text-amber-800"><span class="font-medium">Motivo:</span> {{ $caja->motivo_diferencia_label }}</p>
+        @endif
+        @if ($caja->observacion_cierre)
+            <p class="text-sm text-amber-800 mt-1">{{ $caja->observacion_cierre }}</p>
+        @endif
+    </div>
+@endif
+
 {{-- Movimientos --}}
-@if ($caja->movimientos->isNotEmpty())
+@if ($movimientos->isNotEmpty())
     <div class="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
         <div class="px-4 lg:px-6 py-3 border-b border-stone-200 bg-stone-50">
             <h2 class="text-sm font-semibold text-stone-700">Movimientos registrados</h2>
@@ -58,14 +100,15 @@
                     <tr class="bg-stone-50 text-stone-600 text-left">
                         <th class="px-4 py-3 font-medium">#</th>
                         <th class="px-4 py-3 font-medium">Tipo</th>
+                        <th class="px-4 py-3 font-medium">Método</th>
                         <th class="px-4 py-3 font-medium">Monto</th>
-                        <th class="px-4 py-3 font-medium">Descripción / Referencia</th>
+                        <th class="px-4 py-3 font-medium">Categoría / descripción</th>
                         <th class="hidden sm:table-cell px-4 py-3 font-medium">Registrado por</th>
                         <th class="hidden sm:table-cell px-4 py-3 font-medium">Fecha/Hora</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-stone-200">
-                    @foreach ($caja->movimientos as $m)
+                    @foreach ($movimientos as $m)
                         <tr class="hover:bg-stone-50 transition">
                             <td class="px-4 py-3 text-stone-500">{{ $m->id_movimiento }}</td>
                             <td class="px-4 py-3">
@@ -81,17 +124,16 @@
                                     </span>
                                 @endif
                             </td>
+                            <td class="px-4 py-3 text-stone-700">
+                                {{ $m->metodo_label }}
+                                @unless ($m->afecta_efectivo)
+                                    <span class="ml-1 inline-block bg-sky-100 text-sky-700 text-[10px] font-medium px-1.5 py-0.5 rounded">digital</span>
+                                @endunless
+                            </td>
                             <td class="px-4 py-3 font-medium text-stone-800">S/ {{ number_format($m->monto, 2) }}</td>
                             <td class="px-4 py-3 text-stone-600">
-                                @if ($m->descripcion)
-                                    {{ $m->descripcion }}
-                                @elseif ($m->referencia_tipo === 'venta')
-                                    Venta #{{ $m->referencia_id }}
-                                @elseif ($m->referencia_tipo === 'atencion')
-                                    Atención #{{ $m->referencia_id }}
-                                @else
-                                    —
-                                @endif
+                                <span class="block text-xs text-stone-400">{{ $m->categoria_label }}</span>
+                                {{ $m->descripcion_visible }}
                             </td>
                             <td class="hidden sm:table-cell px-4 py-3 text-stone-500">{{ $m->user?->name ?? '—' }}</td>
                             <td class="hidden sm:table-cell px-4 py-3 text-stone-400">{{ $m->created_at->format('d/m/Y H:i') }}</td>
@@ -100,6 +142,8 @@
                 </tbody>
             </table>
         </div>
+
+        @include('admin.partials.pagination', ['items' => $movimientos])
     </div>
 @else
     <div class="bg-white rounded-xl shadow-sm border border-stone-200 p-6 text-center">

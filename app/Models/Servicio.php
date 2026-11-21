@@ -16,7 +16,16 @@ class Servicio extends Model
         'nombre',
         'descripcion',
         'precio',
+        'costo',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'precio' => 'decimal:2',
+            'costo' => 'decimal:2',
+        ];
+    }
 
     public function atenciones()
     {

@@ -14,7 +14,8 @@ class StoreAperturaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'monto_inicial' => 'required|numeric|min:0',
+            'monto_inicial' => 'required|numeric|decimal:0,2|min:0',
+            'observacion_apertura' => 'nullable|string|max:1000',
         ];
     }
 

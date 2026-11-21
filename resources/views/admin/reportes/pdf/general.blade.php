@@ -27,6 +27,7 @@
 <body>
     <div class="header">
         <h1>{{ $titulo }}</h1>
+        @include('admin.reportes.pdf.partials.negocio')
         <p>{{ ucfirst($nombre_mes) }} {{ $anio }} | {{ $inicio_mes }} al {{ $fin_mes }} | Emitido: {{ now()->format('d/m/Y H:i') }}</p>
     </div>
 
@@ -43,28 +44,29 @@
             <div style="font-size:7pt;">{{ $cant_atenciones }} transacciones</div>
         </div>
         <div class="summary-card">
-            <div class="lbl">Total Ingresos</div>
+            <div class="lbl">Ingreso por ventas + atenciones</div>
             <div class="val">S/ {{ number_format($total_ingresos, 2) }}</div>
         </div>
         <div class="summary-card">
-            <div class="lbl">Ingresos a Caja</div>
+            <div class="lbl">Movimientos de caja (ingresos)</div>
             <div class="val">S/ {{ number_format($total_ingresos_caja, 2) }}</div>
         </div>
         <div class="summary-card">
-            <div class="lbl">Egresos de Caja</div>
+            <div class="lbl">Movimientos de caja (egresos)</div>
             <div class="val negative">S/ {{ number_format($total_egresos_caja, 2) }}</div>
         </div>
         <div class="summary-card">
-            <div class="lbl">Stock Crítico</div>
+            <div class="lbl">Stock crítico (activos)</div>
             <div class="val" style="color:#dc2626;">{{ $stock_critico }} productos</div>
         </div>
         <div class="summary-card">
-            <div class="lbl">Ingresos (Compras)</div>
-            <div class="val">{{ $cant_ingresos }} compras</div>
+            <div class="lbl">Compras recibidas</div>
+            <div class="val">S/ {{ number_format($total_compras, 2) }}</div>
+            <div style="font-size:7pt;">{{ $cant_ingresos }} compras</div>
         </div>
     </div>
 
-    <div class="section-title">Top 10 Productos Más Vendidos</div>
+    <div class="section-title">Top 10 Productos Más Vendidos (ventas)</div>
     <table>
         <thead>
             <tr>
@@ -87,7 +89,8 @@
     </table>
 
     <div class="footer">
-        Página {PAGE_NUM} de {PAGE_COUNT} | Generado por {{ auth()->user()?->name ?? 'Sistema' }}
+        Generado por {{ auth()->user()?->name ?? 'Sistema' }}
     </div>
+@include('admin.reportes.pdf.partials.paginacion')
 </body>
 </html>

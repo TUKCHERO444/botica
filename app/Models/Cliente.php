@@ -23,6 +23,8 @@ class Cliente extends Model implements AuthenticatableContract
         'apellido_materno',
         'email',
         'telefono',
+        'direccion',
+        'fecha_nacimiento',
         'password',
         'registro_web',
         'ultimo_login',
@@ -39,6 +41,7 @@ class Cliente extends Model implements AuthenticatableContract
             'password' => 'hashed',
             'registro_web' => 'boolean',
             'ultimo_login' => 'datetime',
+            'fecha_nacimiento' => 'date',
         ];
     }
 
@@ -55,6 +58,26 @@ class Cliente extends Model implements AuthenticatableContract
     public function getNombreCompletoAttribute(): string
     {
         return trim("{$this->nombre} {$this->apellido_paterno} {$this->apellido_materno}");
+    }
+
+    public function esGenerico(): bool
+    {
+        return $this->dni === '00000001'
+            || mb_strtoupper(trim((string) $this->nombre)) === 'SIN IDENTIFICAR';
+    }
+
+    public function nombreParaTicket(): string
+    {
+        if ($this->esGenerico()) {
+            return 'CLIENTE GENERAL';
+        }
+
+        return $this->nombre_completo !== '' ? $this->nombre_completo : 'CLIENTE GENERAL';
+    }
+
+    public function dniParaTicket(): string
+    {
+        return $this->esGenerico() || blank($this->dni) ? '---' : $this->dni;
     }
 
     public function carrito()

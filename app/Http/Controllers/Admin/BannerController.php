@@ -19,7 +19,7 @@ class BannerController extends Controller
 
     public function index()
     {
-        $banners = Banner::orderBy('orden')->get();
+        $banners = Banner::orderBy('orden')->paginate(10)->withQueryString();
 
         if (request()->ajax()) {
             return view('admin.banners.index', compact('banners'));
@@ -76,7 +76,7 @@ class BannerController extends Controller
 
         if ($request->hasFile('imagen')) {
             $publicId = $banner->public_id
-                ?? $this->cloudinary->getFolder('banners') . '/' . $this->cloudinary->getPublicIdFromUrl($banner->imagen_url);
+                ?? $this->cloudinary->getFolder('banners').'/'.$this->cloudinary->getPublicIdFromUrl($banner->imagen_url);
 
             $this->cloudinary->delete($publicId);
 
@@ -105,7 +105,7 @@ class BannerController extends Controller
     public function destroy(Banner $banner)
     {
         $publicId = $banner->public_id
-            ?? $this->cloudinary->getFolder('banners') . '/' . $this->cloudinary->getPublicIdFromUrl($banner->imagen_url);
+            ?? $this->cloudinary->getFolder('banners').'/'.$this->cloudinary->getPublicIdFromUrl($banner->imagen_url);
 
         $this->cloudinary->delete($publicId);
 
@@ -126,7 +126,7 @@ class BannerController extends Controller
     public function reordenar()
     {
         $data = request()->validate([
-            'items'   => 'required|array',
+            'items' => 'required|array',
             'items.*' => 'required|integer|exists:banner,id_banner',
         ]);
 

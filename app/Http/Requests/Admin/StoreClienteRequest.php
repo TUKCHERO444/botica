@@ -20,6 +20,8 @@ class StoreClienteRequest extends FormRequest
             'apellido_materno' => 'nullable|string|max:25',
             'email' => 'nullable|email|max:255|unique:cliente,email',
             'telefono' => ['nullable', 'string', 'size:9', 'regex:/^9[0-9]{8}$/'],
+            'fecha_nacimiento' => ['nullable', 'date', 'before_or_equal:today'],
+            'direccion' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

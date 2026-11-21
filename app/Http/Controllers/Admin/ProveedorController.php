@@ -8,21 +8,24 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreProveedorRequest;
 use App\Http\Requests\Admin\UpdateProveedorRequest;
 use App\Models\Proveedor;
+use Illuminate\Http\Request;
 
 class ProveedorController extends Controller
 {
-    use CacheaPanel, Audita;
+    use Audita, CacheaPanel;
 
     public function index()
     {
         if (request()->ajax()) {
             return $this->getIndex('proveedores', function () {
-                $proveedores = Proveedor::orderBy('id_proveedor', 'desc')->get();
+                $proveedores = Proveedor::orderBy('id_proveedor', 'desc')->paginate(10)->withQueryString();
+
                 return view('admin.proveedores.index', compact('proveedores'))->render();
             });
         }
 
-        $proveedores = Proveedor::orderBy('id_proveedor', 'desc')->get();
+        $proveedores = Proveedor::orderBy('id_proveedor', 'desc')->paginate(10)->withQueryString();
+
         return view('admin.proveedores.full', compact('proveedores'));
     }
 
@@ -33,6 +36,35 @@ class ProveedorController extends Controller
         }
 
         return redirect()->route('admin.proveedores.index');
+    }
+
+    /**
+     * Verifica un RUC solo contra la base de datos local. No consume la API.
+     */
+    public function verificarRuc(Request $request)
+    {
+        $request->validate([
+            'ruc' => 'required|string|size:11|regex:/^\d{11}$/',
+        ]);
+
+        $proveedor = Proveedor::where('ruc', $request->input('ruc'))->first([
+            'id_proveedor', 'ruc', 'razon_social', 'condicion',
+            'estado', 'direccion', 'ubigeo', 'distrito',
+            'provincia', 'departamento',
+        ]);
+
+        if (! $proveedor) {
+            return response()->json([
+                'success' => true,
+                'exists' => false,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'exists' => true,
+            'proveedor' => $proveedor->toArray(),
+        ]);
     }
 
     public function store(StoreProveedorRequest $request)

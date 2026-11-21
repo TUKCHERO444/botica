@@ -19,9 +19,9 @@
             <label class="block text-xs font-medium text-stone-600 mb-1">Tipo</label>
             <select name="tipo_movimiento" class="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
                 <option value="">Todos</option>
-                <option value="INGRESO" {{ request('tipo_movimiento') == 'INGRESO' ? 'selected' : '' }}>INGRESO</option>
-                <option value="VENTA" {{ request('tipo_movimiento') == 'VENTA' ? 'selected' : '' }}>VENTA</option>
-                <option value="ATENCION" {{ request('tipo_movimiento') == 'ATENCION' ? 'selected' : '' }}>ATENCION</option>
+                @foreach (['INGRESO', 'VENTA', 'ATENCION', 'AJUSTE', 'BAJA', 'DEVOLUCION', 'REVERSION'] as $tipo)
+                    <option value="{{ $tipo }}" {{ request('tipo_movimiento') == $tipo ? 'selected' : '' }}>{{ $tipo }}</option>
+                @endforeach
             </select>
         </div>
         <div>
@@ -55,6 +55,8 @@
                 <tr class="bg-stone-50 text-stone-600 text-left">
                     <th class="px-4 py-3 font-medium whitespace-nowrap">Fecha</th>
                     <th class="px-4 py-3 font-medium">Producto</th>
+                    <th class="px-4 py-3 font-medium">Presentación</th>
+                    <th class="px-4 py-3 font-medium">Lote / vencimiento</th>
                     <th class="px-4 py-3 font-medium">Tipo</th>
                     <th class="px-4 py-3 font-medium">Referencia</th>
                     <th class="px-4 py-3 font-medium text-right">Cantidad</th>
@@ -72,26 +74,45 @@
                         <td class="px-4 py-3 font-medium text-stone-800">
                             {{ $m->producto->nombre ?? '—' }}
                         </td>
-                        <td class="px-4 py-3">
-                            @if ($m->tipo_movimiento === 'INGRESO')
-                                <span class="inline-block bg-emerald-100 text-emerald-700 text-xs font-medium px-2.5 py-0.5 rounded-full">INGRESO</span>
-                            @elseif ($m->tipo_movimiento === 'VENTA')
-                                <span class="inline-block bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-0.5 rounded-full">VENTA</span>
+                        <td class="px-4 py-3 text-stone-500">
+                            {{ $m->unidad_presentacion ?? '—' }}
+                        </td>
+                        <td class="px-4 py-3 text-stone-500 text-xs">
+                            @if ($m->lote_codigo)
+                                <div class="font-mono">{{ $m->lote_codigo }}</div>
+                                <div>{{ $m->fecha_vencimiento?->format('d/m/Y') }}</div>
                             @else
-                                <span class="inline-block bg-amber-100 text-amber-700 text-xs font-medium px-2.5 py-0.5 rounded-full">ATENCION</span>
+                                —
                             @endif
+                        </td>
+                        <td class="px-4 py-3">
+                            @php
+                                $badge = match ($m->tipo_movimiento) {
+                                    'INGRESO' => 'bg-emerald-100 text-emerald-700',
+                                    'VENTA' => 'bg-blue-100 text-blue-700',
+                                    'ATENCION' => 'bg-purple-100 text-purple-700',
+                                    'AJUSTE' => 'bg-amber-100 text-amber-700',
+                                    'BAJA' => 'bg-red-100 text-red-700',
+                                    'DEVOLUCION' => 'bg-orange-100 text-orange-700',
+                                    'REVERSION' => 'bg-stone-200 text-stone-700',
+                                    default => 'bg-stone-100 text-stone-700',
+                                };
+                            @endphp
+                            <span class="inline-block text-xs font-medium px-2.5 py-0.5 rounded-full {{ $badge }}">
+                                {{ $m->tipo_movimiento }}
+                            </span>
                         </td>
                         <td class="px-4 py-3 font-mono text-xs text-stone-600">
                             {{ $m->referencia_codigo }}
                         </td>
                         <td class="px-4 py-3 text-right font-medium tabular-nums {{ $m->cantidad > 0 ? 'text-emerald-600' : 'text-red-600' }}">
-                            {{ $m->cantidad > 0 ? '+' . $m->cantidad : $m->cantidad }}
+                            {{ $m->cantidad > 0 ? '+' : '' }}{{ \App\Helpers\CantidadHelper::formatear($m->cantidad) }}
                         </td>
                         <td class="hidden sm:table-cell px-4 py-3 text-right text-stone-500 tabular-nums">
-                            {{ $m->stock_anterior }}
+                            {{ \App\Helpers\CantidadHelper::formatear($m->stock_anterior) }}
                         </td>
                         <td class="hidden sm:table-cell px-4 py-3 text-right text-stone-500 tabular-nums">
-                            {{ $m->stock_nuevo }}
+                            {{ \App\Helpers\CantidadHelper::formatear($m->stock_nuevo) }}
                         </td>
                         <td class="hidden md:table-cell px-4 py-3 text-stone-500">
                             {{ $m->usuario->name ?? '—' }}
@@ -99,7 +120,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-4 py-8 text-center text-stone-400">
+                        <td colspan="10" class="px-4 py-8 text-center text-stone-400">
                             No hay movimientos registrados.
                         </td>
                     </tr>
@@ -108,11 +129,7 @@
         </table>
     </div>
 
-    @if ($movimientos->hasPages())
-        <div class="px-4 py-3 border-t border-stone-200">
-            {{ $movimientos->links() }}
-        </div>
-    @endif
+    @include('admin.partials.pagination', ['items' => $movimientos])
 </div>
 
 @push('scripts')

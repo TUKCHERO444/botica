@@ -44,3 +44,41 @@
         @endforelse
     </tbody>
 </table>
+
+@if ($items->hasPages())
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-4 border-t border-stone-200">
+        <p class="text-xs text-stone-500">
+            Mostrando {{ $items->firstItem() }}–{{ $items->lastItem() }} de {{ $items->total() }} productos
+        </p>
+        <div class="flex items-center gap-1">
+            @if ($items->onFirstPage())
+                <span class="px-3 py-1.5 text-xs text-stone-300 border border-stone-200 rounded-lg">Anterior</span>
+            @else
+                <button type="button" data-slider-page="{{ $items->currentPage() - 1 }}"
+                    class="px-3 py-1.5 text-xs text-stone-600 border border-stone-300 rounded-lg hover:bg-stone-50 transition">
+                    Anterior
+                </button>
+            @endif
+
+            @foreach ($items->getUrlRange(max(1, $items->currentPage() - 2), min($items->lastPage(), $items->currentPage() + 2)) as $page => $url)
+                @if ($page === $items->currentPage())
+                    <span class="min-w-8 text-center px-2 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg">{{ $page }}</span>
+                @else
+                    <button type="button" data-slider-page="{{ $page }}"
+                        class="min-w-8 text-center px-2 py-1.5 text-xs text-stone-600 border border-stone-300 rounded-lg hover:bg-stone-50 transition">
+                        {{ $page }}
+                    </button>
+                @endif
+            @endforeach
+
+            @if ($items->hasMorePages())
+                <button type="button" data-slider-page="{{ $items->currentPage() + 1 }}"
+                    class="px-3 py-1.5 text-xs text-stone-600 border border-stone-300 rounded-lg hover:bg-stone-50 transition">
+                    Siguiente
+                </button>
+            @else
+                <span class="px-3 py-1.5 text-xs text-stone-300 border border-stone-200 rounded-lg">Siguiente</span>
+            @endif
+        </div>
+    </div>
+@endif

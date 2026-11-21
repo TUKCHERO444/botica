@@ -4,4 +4,4 @@ initReniecSearch('cliente-dni-input', 'btn-buscar-dni-cliente', [
     'nombre',
     'apellido_paterno',
     'apellido_materno',
-]);
+], 'btn-verificar-dni-cliente');

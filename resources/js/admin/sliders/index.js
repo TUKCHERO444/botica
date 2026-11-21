@@ -2,12 +2,12 @@ import axios from 'axios';
 
 let sliderTipoActual = 'buscados';
 
-function cargarTab(tipo) {
+function cargarTab(tipo, page = 1) {
     sliderTipoActual = tipo;
     const content = document.getElementById('slider-content');
     content.innerHTML = '<p class="text-sm text-stone-400 py-8 text-center">Cargando...</p>';
 
-    axios.get(`/admin/sliders/productos/${tipo}`)
+    axios.get(`/admin/sliders/productos/${tipo}`, { params: { page } })
         .then(res => {
             content.innerHTML = res.data;
             document.getElementById('slider-count').textContent =
@@ -160,6 +160,13 @@ function init() {
             }, 300);
         });
     }
+
+    document.addEventListener('click', (e) => {
+        const pageBtn = e.target.closest('[data-slider-page]');
+        if (pageBtn) {
+            cargarTab(sliderTipoActual, parseInt(pageBtn.dataset.sliderPage, 10) || 1);
+        }
+    });
 
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('.btn-asignar');

@@ -2,50 +2,60 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Helpers\KardexHelper;
 use App\Http\Controllers\Admin\Traits\Audita;
 use App\Http\Controllers\Admin\Traits\CacheaPanel;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AnularCompraRequest;
+use App\Http\Requests\Admin\RecibirCompraRequest;
 use App\Http\Requests\Admin\StoreIngresoRequest;
 use App\Http\Requests\Admin\UpdateIngresoRequest;
+use App\Models\Caja;
 use App\Models\Ingreso;
-use App\Models\Producto;
+use App\Models\ProductoPresentacion;
 use App\Models\Proveedor;
-use Illuminate\Support\Facades\DB;
+use App\Services\CompraService;
+use Illuminate\Http\Request;
 
 class IngresoController extends Controller
 {
     use Audita, CacheaPanel;
 
-    private function generarCorrelativo(int $idIngreso): string
-    {
-        $sufijo = str_pad($idIngreso, 8, '0', STR_PAD_LEFT);
-
-        return "ING-{$sufijo}";
-    }
+    public function __construct(
+        private readonly CompraService $compras
+    ) {}
 
     public function index()
     {
-        if (request()->ajax()) {
-            return $this->getIndex('ingresos', function () {
-                $ingresos = Ingreso::with('proveedor', 'user', 'productos')
-                    ->orderBy('id_ingreso', 'desc')->get();
+        $cargar = fn () => Ingreso::with('proveedor', 'user')
+            ->withCount('detalles')
+            ->orderBy('id_ingreso', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
+        if ($this->esAjax(request())) {
+            return $this->getIndex('ingresos', function () use ($cargar) {
+                $ingresos = $cargar();
 
                 return view('admin.ingresos.index', compact('ingresos'))->render();
             });
         }
 
-        $ingresos = Ingreso::with('proveedor', 'user', 'productos')
-            ->orderBy('id_ingreso', 'desc')->get();
+        $ingresos = $cargar();
 
         return view('admin.ingresos.full', compact('ingresos'));
     }
 
     public function show(Ingreso $ingreso)
     {
-        $ingreso->load('proveedor', 'user', 'productos');
+        $ingreso->load([
+            'proveedor',
+            'user',
+            'recepcionUser',
+            'detalles.producto.unidadBase',
+            'detalles.presentacion.presentacion',
+        ]);
 
-        if (request()->ajax()) {
+        if ($this->esAjax(request())) {
             return view('admin.ingresos.show', compact('ingreso'));
         }
 
@@ -54,13 +64,12 @@ class IngresoController extends Controller
 
     public function create()
     {
-        if (request()->ajax()) {
+        if ($this->esAjax(request())) {
             $proveedores = Proveedor::where('estado', 1)->orderBy('razon_social')->get();
-            $productos = Producto::where('estado', 1)->orderBy('nombre')->get();
-            $nextId = (Ingreso::max('id_ingreso') ?? 0) + 1;
-            $siguienteCorrelativo = $this->generarCorrelativo($nextId);
+            $presentaciones = $this->presentacionesDisponibles();
+            $cajaAbierta = Caja::abierta()->first();
 
-            return view('admin.ingresos.create', compact('proveedores', 'productos', 'siguienteCorrelativo'));
+            return view('admin.ingresos.create', compact('proveedores', 'presentaciones', 'cajaAbierta'));
         }
 
         return redirect()->route('admin.ingresos.index');
@@ -68,67 +77,45 @@ class IngresoController extends Controller
 
     public function store(StoreIngresoRequest $request)
     {
-        $data = $request->validated();
-
-        $ingreso = DB::transaction(function () use ($data) {
-            $ingreso = Ingreso::create([
-                'correlativo' => 'TEMP',
-                'proveedor_id_proveedor' => $data['proveedor_id_proveedor'],
-                'fecha' => $data['fecha'] ?? now()->toDateString(),
-                'user_id' => auth()->id(),
-            ]);
-
-            $ingreso->update(['correlativo' => $this->generarCorrelativo($ingreso->id_ingreso)]);
-
-            foreach ($data['productos'] as $p) {
-                $ingreso->productos()->attach($p['producto_id_producto'], [
-                    'cantidad' => $p['cantidad'],
-                ]);
-
-                Producto::where('id_producto', $p['producto_id_producto'])
-                    ->increment('stock', $p['cantidad']);
-
-                $producto = Producto::find($p['producto_id_producto']);
-                KardexHelper::registrar(
-                    $producto,
-                    'INGRESO',
-                    'Ingreso',
-                    $ingreso->id_ingreso,
-                    $ingreso->correlativo,
-                    $p['cantidad'],
-                    'Ingreso de inventario'
-                );
-
-                Producto::where('id_producto', $p['producto_id_producto'])
-                    ->update(['inventario' => DB::raw('stock')]);
-            }
-
-            return $ingreso;
-        });
+        try {
+            $ingreso = $this->compras->crear($request->validated());
+        } catch (\RuntimeException $e) {
+            return $this->error($request, $e->getMessage());
+        }
 
         $this->olvidaIndex('ingresos');
-        $this->olvidaIndex('productos');
-        $this->auditarCrear($ingreso, 'ingresos', "Registró el ingreso #{$ingreso->correlativo}");
+        $this->auditarCrear($ingreso, 'ingresos', "Guardó la compra {$ingreso->numero_documento} como borrador");
 
-        if ($request->ajax()) {
+        if ($this->esAjax($request)) {
             return response()->json([
                 'success' => true,
-                'message' => 'Ingreso registrado correctamente',
-                'ingreso' => $ingreso->load('proveedor', 'user', 'productos'),
+                'message' => 'Compra guardada como borrador. Recíbela para ingresar el stock.',
+                'ingreso' => $ingreso,
             ]);
         }
 
-        return redirect()->route('admin.ingresos.index')->with('success', 'Ingreso registrado correctamente');
+        return redirect()->route('admin.ingresos.index')
+            ->with('success', 'Compra guardada como borrador.');
     }
 
     public function edit(Ingreso $ingreso)
     {
-        if (request()->ajax()) {
-            $proveedores = Proveedor::where('estado', 1)->orderBy('razon_social')->get();
-            $productos = Producto::where('estado', 1)->orderBy('nombre')->get();
-            $ingreso->load('productos', 'proveedor');
+        if (! $ingreso->estaEnBorrador()) {
+            return $this->error(request(), 'Solo se puede editar una compra en estado borrador.');
+        }
 
-            return view('admin.ingresos.edit', compact('ingreso', 'proveedores', 'productos'));
+        if ($this->esAjax(request())) {
+            $proveedores = Proveedor::where('estado', 1)->orderBy('razon_social')->get();
+            $presentaciones = $this->presentacionesDisponibles(false);
+            $cajaAbierta = Caja::abierta()->first();
+            $ingreso->load(['proveedor', 'detalles.presentacion.presentacion', 'detalles.producto.unidadBase']);
+
+            return view('admin.ingresos.edit', compact(
+                'ingreso',
+                'proveedores',
+                'presentaciones',
+                'cajaAbierta'
+            ));
         }
 
         return redirect()->route('admin.ingresos.index');
@@ -136,94 +123,162 @@ class IngresoController extends Controller
 
     public function update(UpdateIngresoRequest $request, Ingreso $ingreso)
     {
-        $data = $request->validated();
-
-        DB::transaction(function () use ($data, $ingreso) {
-            KardexHelper::eliminarPorReferencia('Ingreso', $ingreso->id_ingreso);
-
-            foreach ($ingreso->productos as $old) {
-                Producto::where('id_producto', $old->id_producto)
-                    ->decrement('stock', $old->pivot->cantidad);
-            }
-
-            $ingreso->productos()->detach();
-
-            $ingreso->update([
-                'proveedor_id_proveedor' => $data['proveedor_id_proveedor'],
-                'fecha' => $data['fecha'] ?? now()->toDateString(),
-            ]);
-
-            $productosIds = $ingreso->productos->pluck('id_producto');
-
-            foreach ($data['productos'] as $p) {
-                $ingreso->productos()->attach($p['producto_id_producto'], [
-                    'cantidad' => $p['cantidad'],
-                ]);
-
-                Producto::where('id_producto', $p['producto_id_producto'])
-                    ->increment('stock', $p['cantidad']);
-
-                $producto = Producto::find($p['producto_id_producto']);
-                KardexHelper::registrar(
-                    $producto,
-                    'INGRESO',
-                    'Ingreso',
-                    $ingreso->id_ingreso,
-                    $ingreso->correlativo,
-                    $p['cantidad'],
-                    'Ingreso de inventario'
-                );
-            }
-
-            $productosIds = $productosIds->merge(collect($data['productos'])->pluck('producto_id_producto'))->unique();
-
-            foreach ($productosIds as $id) {
-                Producto::where('id_producto', $id)
-                    ->update(['inventario' => DB::raw('stock')]);
-            }
-        });
+        try {
+            $ingreso = $this->compras->actualizar($ingreso, $request->validated());
+        } catch (\RuntimeException $e) {
+            return $this->error($request, $e->getMessage());
+        }
 
         $this->olvidaIndex('ingresos');
-        $this->olvidaIndex('productos');
-        $this->auditarActualizar($ingreso, 'ingresos', "Actualizó el ingreso #{$ingreso->correlativo}");
+        $this->auditarActualizar($ingreso, 'ingresos', "Actualizó la compra {$ingreso->numero_documento}");
 
-        if ($request->ajax()) {
+        if ($this->esAjax($request)) {
             return response()->json([
                 'success' => true,
-                'message' => 'Ingreso actualizado correctamente',
-                'ingreso' => $ingreso->fresh()->load('proveedor', 'user', 'productos'),
+                'message' => 'Compra actualizada correctamente.',
+                'ingreso' => $ingreso,
             ]);
         }
 
-        return redirect()->route('admin.ingresos.index')->with('success', 'Ingreso actualizado correctamente');
+        return redirect()->route('admin.ingresos.index')
+            ->with('success', 'Compra actualizada correctamente.');
     }
 
     public function destroy(Ingreso $ingreso)
     {
-        DB::transaction(function () use ($ingreso) {
-            KardexHelper::eliminarPorReferencia('Ingreso', $ingreso->id_ingreso);
-
-            foreach ($ingreso->productos as $p) {
-                Producto::where('id_producto', $p->id_producto)
-                    ->decrement('stock', $p->pivot->cantidad);
-                Producto::where('id_producto', $p->id_producto)
-                    ->update(['inventario' => DB::raw('stock')]);
-            }
-            $ingreso->productos()->detach();
-            $ingreso->delete();
-        });
+        try {
+            $this->compras->eliminar($ingreso);
+        } catch (\RuntimeException $e) {
+            return $this->error(request(), $e->getMessage());
+        }
 
         $this->olvidaIndex('ingresos');
-        $this->olvidaIndex('productos');
-        $this->auditarEliminar($ingreso, 'ingresos', "Eliminó el ingreso #{$ingreso->correlativo}");
+        $this->auditarEliminar($ingreso, 'ingresos', "Eliminó el borrador de compra {$ingreso->numero_documento}");
 
-        if (request()->ajax()) {
+        if ($this->esAjax(request())) {
             return response()->json([
                 'success' => true,
-                'message' => 'Ingreso eliminado correctamente',
+                'message' => 'Borrador de compra eliminado correctamente.',
             ]);
         }
 
-        return redirect()->route('admin.ingresos.index')->with('success', 'Ingreso eliminado correctamente');
+        return redirect()->route('admin.ingresos.index')
+            ->with('success', 'Borrador de compra eliminado correctamente.');
+    }
+
+    public function formRecibir(Ingreso $ingreso)
+    {
+        if (! $ingreso->estaEnBorrador()) {
+            return $this->error(request(), 'Solo se puede recibir una compra en estado borrador.');
+        }
+
+        if (! $this->esAjax(request())) {
+            return redirect()->route('admin.ingresos.index');
+        }
+
+        $ingreso->load(['proveedor', 'detalles.producto.unidadBase', 'detalles.presentacion.presentacion']);
+        $cajaAbierta = Caja::abierta()->first();
+
+        return view('admin.ingresos.recibir', compact('ingreso', 'cajaAbierta'));
+    }
+
+    public function recibir(RecibirCompraRequest $request, Ingreso $ingreso)
+    {
+        try {
+            $ingreso = $this->compras->recibir($ingreso, $request->validated());
+        } catch (\RuntimeException $e) {
+            return $this->error($request, $e->getMessage());
+        }
+
+        $this->olvidaIndex('ingresos');
+        $this->olvidaIndex('productos');
+        $this->olvidaIndex('caja');
+        $this->auditarActualizar(
+            $ingreso,
+            'ingresos',
+            "Recibió la compra {$ingreso->correlativo} e ingresó el stock"
+        );
+
+        if ($this->esAjax($request)) {
+            return response()->json([
+                'success' => true,
+                'message' => "Compra recibida correctamente ({$ingreso->correlativo}).",
+                'ingreso' => $ingreso,
+            ]);
+        }
+
+        return redirect()->route('admin.ingresos.index')
+            ->with('success', 'Compra recibida correctamente.');
+    }
+
+    public function formAnular(Ingreso $ingreso)
+    {
+        if (! $ingreso->estaRecibida()) {
+            return $this->error(request(), 'Solo se puede anular una compra recibida.');
+        }
+
+        if (! $this->esAjax(request())) {
+            return redirect()->route('admin.ingresos.index');
+        }
+
+        $ingreso->load('proveedor');
+
+        return view('admin.ingresos.anular', compact('ingreso'));
+    }
+
+    public function anular(AnularCompraRequest $request, Ingreso $ingreso)
+    {
+        try {
+            $ingreso = $this->compras->anular($ingreso, $request->validated()['motivo_anulacion']);
+        } catch (\RuntimeException $e) {
+            return $this->error($request, $e->getMessage());
+        }
+
+        $this->olvidaIndex('ingresos');
+        $this->olvidaIndex('productos');
+        $this->olvidaIndex('caja');
+        $this->auditarActualizar(
+            $ingreso,
+            'ingresos',
+            "Anuló la compra {$ingreso->correlativo}: {$ingreso->motivo_anulacion}"
+        );
+
+        if ($this->esAjax($request)) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Compra anulada y stock revertido correctamente.',
+                'ingreso' => $ingreso,
+            ]);
+        }
+
+        return redirect()->route('admin.ingresos.index')
+            ->with('success', 'Compra anulada correctamente.');
+    }
+
+    private function presentacionesDisponibles(bool $soloConProductosActivos = true)
+    {
+        return ProductoPresentacion::with(['producto.unidadBase', 'presentacion'])
+            ->where('activo', true)
+            ->when($soloConProductosActivos, function ($q) {
+                $q->whereHas('producto', fn ($p) => $p->where('estado', 1));
+            })
+            ->join('producto', 'producto.id_producto', '=', 'producto_presentacion.producto_id_producto')
+            ->orderBy('producto.nombre')
+            ->select('producto_presentacion.*')
+            ->get();
+    }
+
+    private function error(Request $request, string $message, int $status = 422)
+    {
+        if ($this->esAjax($request)) {
+            return response()->json(['success' => false, 'message' => $message], $status);
+        }
+
+        return redirect()->back()->with('error', $message)->withInput();
+    }
+
+    private function esAjax(Request $request): bool
+    {
+        return $request->ajax() || $request->expectsJson();
     }
 }

@@ -1,11 +1,19 @@
 # Integración API SUNAT — Consulta de RUC para Proveedores
 
+> ⚠️ **Documento histórico parcial (2026-11-20).** El proveedor vigente para la
+> consulta RUC es **json.pe** (`POST https://api.json.pe/api/ruc`) mediante
+> `JsonPeClient`. La especificación actual está en
+> [`integracion-jsonpe.md`](integracion-jsonpe.md). Las secciones de este
+> documento que describen decolecta (endpoint, request/response, configuración y
+> variables de entorno) ya **no** aplican. El flujo funcional, controladores,
+> reglas de negocio y frontend siguen siendo válidos.
+
 > **Versión:** 1.0.0  
 > **Fecha:** 2026-06-21  
 > **Módulos afectados:** Proveedores, Ingresos  
-> **Proveedor:** [dacoleta.api](https://api.decolecta.com)  
+> **Proveedor:** [dacoleta.api](https://api.decolecta.com) (reemplazado por json.pe)  
 > **Endpoints involucrados:** `GET https://api.decolecta.com/v1/sunat/ruc?numero={ruc}`  
-> **Estado:** Pendiente de implementación
+> **Estado:** Reemplazado; ver `integracion-jsonpe.md`
 
 ---
 
@@ -1075,11 +1083,13 @@ Este flujo es análogo al de ventas con auto-creación de cliente (ver documenta
 ### 17.1 `.env`
 
 ```ini
-SUNAT_API_TOKEN=sk_16636.s4Vhmw5pPXXpSDY3e52TDStmr43qVYsW
+SUNAT_API_TOKEN=<token_decolecta>
 SUNAT_API_URL=https://api.decolecta.com/v1/sunat/ruc
 ```
 
-> **Nota**: `SUNAT_API_TOKEN` puede omitirse si se desea reutilizar el token de RENIEC. En `config/services.php` se configurará con fallback a `RENIEC_API_TOKEN`.
+> **Nota histórica**: este documento describe la configuración con decolecta y
+> `SUNAT_API_TOKEN`. Fue reemplazada por json.pe y `JSONPE_API_TOKEN`; ver
+> `integracion-jsonpe.md`.
 
 ### 17.2 `.env.example`
 
@@ -1096,23 +1106,25 @@ SUNAT_API_URL=https://api.decolecta.com/v1/sunat/ruc
 
 ```php
 'sunat' => [
-    'token' => env('SUNAT_API_TOKEN', env('RENIEC_API_TOKEN')),
+    'token' => env('SUNAT_API_TOKEN'),
     'url' => env('SUNAT_API_URL', 'https://api.decolecta.com/v1/sunat/ruc'),
 ],
 ```
 
 ### 18.2 Ubicación en el archivo
 
-Agregar después de la entrada de `reniec`:
+Agregar después de la entrada de `jsonpe` (la consulta DNI usa json.pe desde 2026-11-20):
 
 ```php
-'reniec' => [
-    'token' => env('RENIEC_API_TOKEN'),
-    'url' => env('RENIEC_API_URL', 'https://api.decolecta.com/v1/reniec/dni'),
+'jsonpe' => [
+    'token' => env('JSONPE_API_TOKEN'),
+    'url' => env('JSONPE_API_URL', 'https://api.json.pe/api'),
+    'timeout' => (int) env('JSONPE_API_TIMEOUT', 8),
+    'cache_minutos' => (int) env('JSONPE_CACHE_MINUTOS', 60),
 ],
 
 'sunat' => [
-    'token' => env('SUNAT_API_TOKEN', env('RENIEC_API_TOKEN')),
+    'token' => env('SUNAT_API_TOKEN'),
     'url' => env('SUNAT_API_URL', 'https://api.decolecta.com/v1/sunat/ruc'),
 ],
 ```

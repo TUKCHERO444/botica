@@ -115,7 +115,7 @@
                     <td>{{ $i + 1 }}</td>
                     <td>{{ $item->item_type === 'combo' ? 'Combo' : 'Producto' }}</td>
                     <td>{{ $item->nombre ?? '—' }}</td>
-                    <td class="text-center">{{ $item->cantidad }}</td>
+                    <td class="text-center">{{ \App\Helpers\CantidadHelper::formatear($item->cantidad) }}</td>
                     <td class="text-right">S/ {{ number_format($item->precio_unitario, 2) }}</td>
                     <td class="text-right">S/ {{ number_format($item->subtotal, 2) }}</td>
                 </tr>

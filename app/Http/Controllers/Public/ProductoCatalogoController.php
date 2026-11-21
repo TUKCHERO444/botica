@@ -46,7 +46,7 @@ class ProductoCatalogoController extends Controller
             ->when($selectedPrecioMax, function ($q, $max) {
                 $q->where('precio_venta', '<=', (float) $max);
             })
-            ->with('categoria', 'marca')
+            ->with('categoria', 'marca', 'presentaciones')
             ->orderBy('nombre')
             ->paginate(20)
             ->withQueryString();
@@ -66,23 +66,23 @@ class ProductoCatalogoController extends Controller
     {
         $q = request()->input('q');
 
-        if (!$q || strlen(trim($q)) < 2) {
+        if (! $q || strlen(trim($q)) < 2) {
             return response()->json([]);
         }
 
         $productos = Producto::visible()
             ->where('nombre', 'like', "%{$q}%")
-            ->with('categoria')
+            ->with('categoria', 'presentaciones')
             ->limit(10)
             ->get()
             ->map(function ($p) {
                 return [
-                    'id'         => $p->id_producto,
-                    'nombre'     => $p->nombre,
-                    'precio'     => $p->precio_venta,
-                    'foto_url'   => $p->foto_url,
-                    'categoria'  => $p->categoria?->nombre,
-                    'url'        => route('public.productos.show', $p),
+                    'id' => $p->id_producto,
+                    'nombre' => $p->nombre,
+                    'precio' => (float) $p->precio_desde,
+                    'foto_url' => $p->foto_url,
+                    'categoria' => $p->categoria?->nombre,
+                    'url' => route('public.productos.show', $p),
                 ];
             });
 
@@ -97,11 +97,12 @@ class ProductoCatalogoController extends Controller
             'Producto no disponible'
         );
 
-        $producto->load('categoria', 'marca');
+        $producto->load('categoria', 'marca', 'presentaciones.presentacion');
 
         $relacionados = Producto::visible()
             ->where('id_producto', '!=', $producto->id_producto)
             ->where('categoria_id_categoria', $producto->categoria_id_categoria)
+            ->with('presentaciones')
             ->inRandomOrder()
             ->limit(8)
             ->get();

@@ -55,3 +55,6 @@
 </div>
 
 @vite('resources/js/admin/combos/index.js')
+
+
+@include('admin.partials.pagination', ['items' => $combos])

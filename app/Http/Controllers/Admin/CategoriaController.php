@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 
 class CategoriaController extends Controller
 {
-    use CacheaPanel, Audita;
+    use Audita, CacheaPanel;
 
     public function index()
     {
@@ -26,28 +26,30 @@ class CategoriaController extends Controller
 
         if (request()->ajax()) {
             return $this->getIndex('categorias', function () use ($query, $search) {
-                $categorias = $query->get();
+                $categorias = $query->paginate(10)->withQueryString();
+
                 return view('admin.categorias.index', compact('categorias', 'search'))->render();
             });
         }
 
-        $categorias = $query->get();
+        $categorias = $query->paginate(10)->withQueryString();
+
         return view('admin.categorias.full', compact('categorias', 'search'));
     }
 
     public function search(Request $request)
     {
         $q = $request->get('q');
-        if (!$q || strlen(trim($q)) < 2) {
+        if (! $q || strlen(trim($q)) < 2) {
             return response()->json([]);
         }
 
         $results = Categoria::where('nombre', 'like', "%{$q}%")
             ->limit(10)
             ->get()
-            ->map(fn($c) => [
-                'id'       => $c->id_categoria,
-                'nombre'   => $c->nombre,
+            ->map(fn ($c) => [
+                'id' => $c->id_categoria,
+                'nombre' => $c->nombre,
                 'edit_url' => route('admin.categorias.edit', $c),
             ]);
 

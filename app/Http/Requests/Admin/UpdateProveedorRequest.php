@@ -14,7 +14,7 @@ class UpdateProveedorRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ruc' => 'required|string|size:11|unique:proveedor,ruc,' . $this->route('proveedor')->id_proveedor . ',id_proveedor',
+            'ruc' => 'required|string|size:11|unique:proveedor,ruc,'.$this->route('proveedor')->id_proveedor.',id_proveedor',
             'razon_social' => 'required|string|max:150',
             'condicion' => 'required|string|max:15',
             'estado' => 'required|integer|in:0,1',
@@ -23,6 +23,7 @@ class UpdateProveedorRequest extends FormRequest
             'distrito' => 'nullable|string|max:100',
             'provincia' => 'nullable|string|max:100',
             'departamento' => 'nullable|string|max:100',
+            'lead_time' => 'nullable|integer|min:0|max:365',
         ];
     }
 }

@@ -9,4 +9,4 @@ initSunatSearch('ruc-input', 'btn-buscar-ruc', [
     'distrito',
     'provincia',
     'departamento',
-]);
+], 'btn-verificar-ruc');

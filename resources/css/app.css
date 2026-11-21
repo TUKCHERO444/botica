@@ -34,3 +34,25 @@
     white-space: nowrap;
     padding: 0 1rem;
 }
+
+/* Selección de método de pago en ventas y atenciones */
+.metodo-btn [data-metodo-check] {
+    display: none;
+}
+
+.metodo-btn[data-selected='true'] {
+    border-color: #10b981;
+    background-color: #ecfdf5;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+}
+
+.metodo-btn[data-selected='true'] [data-metodo-check] {
+    display: inline-flex;
+}
+
+[data-pago-mixto][data-activo='true'] {
+    border-color: #fcd34d;
+    background-color: #fffbeb;
+    color: #b45309;
+}
+

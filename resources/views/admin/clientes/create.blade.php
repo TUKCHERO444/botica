@@ -1,4 +1,4 @@
-<form action="{{ route('admin.clientes.store') }}" method="POST" class="p-6">
+<form data-modal-size="lg" action="{{ route('admin.clientes.store') }}" method="POST" class="p-6">
     @csrf
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-lg font-bold text-stone-800">Nuevo cliente</h2>
@@ -14,9 +14,14 @@
             <label class="block text-sm font-medium text-stone-700 mb-1">DNI <span class="text-stone-400 font-normal">(opcional)</span></label>
             <div class="flex gap-2">
                 <input type="text" name="dni" id="cliente-dni-input" maxlength="8" minlength="8"
-                    class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                    class="w-full min-w-0 flex-1 rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                <button type="button" id="btn-verificar-dni-cliente"
+                    class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    disabled>
+                    Verificar cliente
+                </button>
                 <button type="button" id="btn-buscar-dni-cliente"
-                    class="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-stone-300 text-white rounded-lg text-sm font-medium transition disabled:cursor-not-allowed flex items-center gap-1"
+                    class="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-stone-300 text-white rounded-lg text-sm font-medium transition disabled:cursor-not-allowed flex items-center gap-1 whitespace-nowrap"
                     disabled>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -48,6 +53,16 @@
         <div>
             <label class="block text-sm font-medium text-stone-700 mb-1">Teléfono <span class="text-stone-400 font-normal">(opcional)</span></label>
             <input type="text" name="telefono" maxlength="9" placeholder="987654321"
+                class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-stone-700 mb-1">Fecha de nacimiento <span class="text-stone-400 font-normal">(opcional)</span></label>
+            <input type="date" name="fecha_nacimiento" max="{{ now()->toDateString() }}"
+                class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-stone-700 mb-1">Dirección <span class="text-stone-400 font-normal">(opcional)</span></label>
+            <input type="text" name="direccion" maxlength="255"
                 class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
         </div>
     </div>

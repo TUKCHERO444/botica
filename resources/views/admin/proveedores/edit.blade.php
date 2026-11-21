@@ -1,4 +1,4 @@
-<form action="{{ route('admin.proveedores.update', $proveedor->id_proveedor) }}" method="POST" class="p-6">
+<form data-modal-size="lg" action="{{ route('admin.proveedores.update', $proveedor->id_proveedor) }}" method="POST" class="p-6">
     @csrf
     @method('PUT')
     <div class="flex items-center justify-between mb-6">
@@ -38,6 +38,12 @@
             <label class="block text-sm font-medium text-stone-700 mb-1">Dirección</label>
             <input type="text" name="direccion" value="{{ $proveedor->direccion }}" maxlength="255"
                 class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-stone-700 mb-1">Lead time <span class="text-stone-400 font-normal">(días, opcional)</span></label>
+            <input type="number" name="lead_time" min="0" max="365" step="1" value="{{ $proveedor->lead_time }}"
+                class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+            <p class="text-xs text-stone-400 mt-1">Días estimados entre el pedido y la recepción.</p>
         </div>
         <div class="grid grid-cols-2 gap-4">
             <div>

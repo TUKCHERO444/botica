@@ -11,18 +11,20 @@ use App\Models\Servicio;
 
 class ServicioController extends Controller
 {
-    use CacheaPanel, Audita;
+    use Audita, CacheaPanel;
 
     public function index()
     {
         if (request()->ajax()) {
             return $this->getIndex('servicios', function () {
-                $servicios = Servicio::orderBy('id_servicio', 'desc')->get();
+                $servicios = Servicio::orderBy('id_servicio', 'desc')->paginate(10)->withQueryString();
+
                 return view('admin.servicios.index', compact('servicios'))->render();
             });
         }
 
-        $servicios = Servicio::orderBy('id_servicio', 'desc')->get();
+        $servicios = Servicio::orderBy('id_servicio', 'desc')->paginate(10)->withQueryString();
+
         return view('admin.servicios.full', compact('servicios'));
     }
 

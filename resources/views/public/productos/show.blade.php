@@ -90,9 +90,12 @@
             @endif
 
             <div class="mt-6">
-                <span class="text-3xl sm:text-4xl font-bold text-emerald-700">
-                    S/ {{ number_format($producto->precio_venta, 2) }}
+                <span id="precio-producto" class="text-3xl sm:text-4xl font-bold text-emerald-700">
+                    S/ {{ number_format($producto->precio_desde, 2) }}
                 </span>
+                @if ($producto->presentaciones->where('activo', true)->count() > 1)
+                    <span class="ml-2 text-sm text-stone-500">desde</span>
+                @endif
             </div>
 
             <div class="mt-4 p-4 bg-stone-50 rounded-lg border border-stone-200">
@@ -101,7 +104,7 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <span class="font-medium">En stock — {{ $producto->stock }} {{ $producto->stock === 1 ? 'unidad' : 'unidades' }} disponibles</span>
+                        <span class="font-medium">En stock — {{ $producto->stock_con_unidad }} {{ $producto->stock == 1 ? 'disponible' : 'disponibles' }}</span>
                     </div>
                 @else
                     <div class="flex items-center gap-2 text-amber-600">
@@ -112,6 +115,35 @@
                     </div>
                 @endif
             </div>
+
+            {{-- Presentaciones --}}
+            @if ($producto->presentaciones->where('activo', true)->isNotEmpty())
+                <div class="mt-4 p-4 bg-white rounded-lg border border-stone-200">
+                    <label class="block text-sm font-medium text-stone-700 mb-1">Presentación</label>
+                    <select id="presentacion-select"
+                        class="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                        @foreach ($producto->presentaciones->where('activo', true) as $pp)
+                            <option value="{{ $pp->id_producto_presentacion }}"
+                                data-precio="{{ $pp->precio_venta }}"
+                                data-stock="{{ $pp->producto->stock_formateado }}"
+                                data-paso="{{ $pp->paso }}"
+                                @selected($pp->es_base)>
+                                {{ $pp->nombre_completo }} — S/ {{ number_format($pp->precio_venta, 2) }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="mt-3 flex items-end gap-3">
+                        <div class="flex-1">
+                            <label class="block text-xs font-medium text-stone-600 mb-1">Cantidad</label>
+                            <input type="number" id="cantidad-producto" min="0.001" step="1" value="1"
+                                class="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                        </div>
+                        <p id="presentacion-stock" class="text-xs text-stone-500 pb-2">
+                            Stock: {{ $producto->stock_con_unidad }}
+                        </p>
+                    </div>
+                </div>
+            @endif
 
             {{-- WhatsApp --}}
             <x-whatsapp-button :producto="$producto" />

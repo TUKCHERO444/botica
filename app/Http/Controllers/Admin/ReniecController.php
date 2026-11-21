@@ -65,7 +65,7 @@ class ReniecController extends Controller
             ], 422);
         } catch (ReniecServiceException $e) {
             logger()->error('RENIEC: Error de servicio', [
-                'dni' => substr($dni, 0, 2) . '****' . substr($dni, -2),
+                'dni' => substr($dni, 0, 2).'****'.substr($dni, -2),
                 'error' => $e->getMessage(),
             ]);
 

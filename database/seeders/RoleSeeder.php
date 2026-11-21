@@ -13,10 +13,11 @@ class RoleSeeder extends Seeder
         $admin = Role::firstOrCreate(['name' => 'Administrador']);
         $admin->syncPermissions([
             'dashboard', 'productos', 'categorias', 'marcas',
+            'unidades-medida', 'presentaciones',
             'proveedores', 'clientes', 'ventas', 'servicios',
-            'atenciones', 'ingresos', 'usuarios', 'roles',
-            'caja', 'sliders', 'portada.banners', 'portada.header-text', 'portada.categorias', 'portada.promociones', 'combos',
-            'auditoria', 'kardex', 'reportes',
+            'atenciones', 'ingresos', 'devoluciones', 'ajustes', 'inventario-inicial', 'conciliaciones', 'usuarios', 'roles',
+            'caja', 'metodos-pago', 'sliders', 'portada.banners', 'portada.header-text', 'portada.categorias', 'portada.promociones', 'combos',
+            'auditoria', 'kardex', 'lotes', 'reportes',
         ]);
 
         $vendedor = Role::firstOrCreate(['name' => 'Vendedor']);

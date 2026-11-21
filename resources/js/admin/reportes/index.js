@@ -2,6 +2,7 @@ function initReportes() {
     const tipoSelect = document.getElementById('reporte-tipo');
     const btnPreview = document.getElementById('btn-preview');
     const btnGenerate = document.getElementById('btn-generate');
+    const btnCsv = document.getElementById('btn-csv');
     const previewContainer = document.getElementById('reporte-preview');
 
     if (!tipoSelect) return;
@@ -43,6 +44,7 @@ function initReportes() {
             ventas: 'Usuario (Vendedor)',
             atenciones: 'Usuario (Doctor/Asistente)',
             ingresos: 'Usuario (Recepcionista)',
+            movimientos: 'Usuario',
             auditoria: 'Usuario',
             caja: 'Usuario',
         };
@@ -67,7 +69,13 @@ function initReportes() {
 
         try {
             const response = await axios.get(`/admin/reportes/preview?${params.toString()}`);
-            previewContainer.innerHTML = `<div class="bg-white rounded-xl shadow-sm border border-stone-200 p-4 lg:p-6 overflow-auto">${response.data}</div>`;
+            previewContainer.innerHTML = '';
+            const iframe = document.createElement('iframe');
+            iframe.title = 'Vista previa del reporte';
+            iframe.className = 'w-full rounded-xl border border-stone-200 bg-white shadow-sm';
+            iframe.style.height = '75vh';
+            iframe.srcdoc = response.data;
+            previewContainer.appendChild(iframe);
         } catch (error) {
             previewContainer.innerHTML = '<p class="text-red-600 text-sm py-4 text-center">Error al cargar la vista previa.</p>';
         }
@@ -75,6 +83,13 @@ function initReportes() {
 
     btnGenerate?.addEventListener('click', () => {
         const params = getFilters();
+        const url = `/admin/reportes/generate?${params.toString()}`;
+        window.open(url, '_blank');
+    });
+
+    btnCsv?.addEventListener('click', () => {
+        const params = getFilters();
+        params.set('formato', 'csv');
         const url = `/admin/reportes/generate?${params.toString()}`;
         window.open(url, '_blank');
     });

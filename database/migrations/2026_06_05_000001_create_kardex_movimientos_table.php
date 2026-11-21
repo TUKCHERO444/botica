@@ -14,13 +14,20 @@ return new class extends Migration
             $table->foreignId('usuario_id')->constrained('users')->cascadeOnDelete();
 
             $table->foreign('producto_id')->references('id_producto')->on('producto')->cascadeOnDelete();
-            $table->enum('tipo_movimiento', ['INGRESO', 'VENTA', 'ATENCION']);
+            $table->enum('tipo_movimiento', ['INGRESO', 'VENTA', 'ATENCION', 'AJUSTE', 'BAJA', 'DEVOLUCION', 'REVERSION']);
             $table->string('referencia_tipo', 50);
             $table->unsignedBigInteger('referencia_id');
             $table->string('referencia_codigo', 50);
-            $table->integer('cantidad');
-            $table->integer('stock_anterior');
-            $table->integer('stock_nuevo');
+            $table->decimal('cantidad', 12, 3);
+            $table->decimal('stock_anterior', 12, 3);
+            $table->decimal('stock_nuevo', 12, 3);
+            $table->foreignId('producto_presentacion_id')
+                ->nullable()
+                ->constrained('producto_presentacion', 'id_producto_presentacion')
+                ->nullOnDelete();
+            $table->decimal('cantidad_presentacion', 12, 3)->nullable();
+            $table->string('unidad_presentacion', 100)->nullable();
+            $table->decimal('factor', 12, 3)->nullable();
             $table->text('observacion')->nullable();
             $table->timestamps();
 

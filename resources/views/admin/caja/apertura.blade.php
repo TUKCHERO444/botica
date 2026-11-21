@@ -1,4 +1,4 @@
-<form action="{{ route('admin.caja.apertura') }}" method="POST" class="p-6">
+<form data-modal-size="sm" action="{{ route('admin.caja.apertura') }}" method="POST" class="p-6">
     @csrf
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-lg font-bold text-stone-800">Abrir caja</h2>
@@ -15,7 +15,13 @@
             <input type="number" name="monto_inicial" step="0.01" min="0" required
                 class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 placeholder="0.00">
-            <p class="text-xs text-stone-400 mt-1">Ingrese el monto con el que se apertura la caja.</p>
+            <p class="text-xs text-stone-400 mt-1">Ingrese el efectivo con el que se apertura la caja (fondo de sencillo).</p>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-stone-700 mb-1">Observación de apertura</label>
+            <textarea name="observacion_apertura" rows="2" maxlength="1000"
+                class="w-full rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                placeholder="Opcional: novedades del turno, diferencias de fondo, etc."></textarea>
         </div>
     </div>
 

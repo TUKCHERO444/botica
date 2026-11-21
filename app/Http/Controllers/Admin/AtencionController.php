@@ -2,30 +2,51 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Helpers\KardexHelper;
+use App\Helpers\CantidadHelper;
 use App\Http\Controllers\Admin\Traits\Audita;
 use App\Http\Controllers\Admin\Traits\CacheaPanel;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AnularAtencionRequest;
 use App\Http\Requests\Admin\StoreAtencionRequest;
-use App\Http\Requests\Admin\UpdateAtencionRequest;
 use App\Models\Atencion;
 use App\Models\Caja;
-use App\Models\CajaMovimiento;
 use App\Models\Cliente;
-use App\Models\Producto;
+use App\Models\LoteConsumo;
+use App\Models\MetodoPago;
+use App\Models\Pago;
+use App\Models\ProductoPresentacion;
 use App\Models\Servicio;
+use App\Services\AnulacionAtencionService;
+use App\Services\CajaService;
+use App\Services\InventarioService;
+use App\Services\PagoService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AtencionController extends Controller
 {
     use Audita, CacheaPanel;
 
+    public function __construct(
+        private readonly InventarioService $inventario,
+        private readonly PagoService $pagos,
+        private readonly CajaService $cajas,
+        private readonly AnulacionAtencionService $anulaciones
+    ) {}
+
+    private function generarCorrelativo(int $idAtencion): string
+    {
+        $sufijo = str_pad($idAtencion, 8, '0', STR_PAD_LEFT);
+
+        return "A001-{$sufijo}";
+    }
+
     public function index()
     {
         if (request()->ajax()) {
             return $this->getIndex('atenciones', function () {
                 $atenciones = Atencion::with('cliente', 'user', 'productos', 'servicios')
-                    ->orderBy('id_atencion', 'desc')->get();
+                    ->orderBy('id_atencion', 'desc')->paginate(10)->withQueryString();
                 $cajaAbierta = Caja::abierta()->exists();
 
                 return view('admin.atenciones.index', compact('atenciones', 'cajaAbierta'))->render();
@@ -33,7 +54,7 @@ class AtencionController extends Controller
         }
 
         $atenciones = Atencion::with('cliente', 'user', 'productos', 'servicios')
-            ->orderBy('id_atencion', 'desc')->get();
+            ->orderBy('id_atencion', 'desc')->paginate(10)->withQueryString();
         $cajaAbierta = Caja::abierta()->exists();
 
         return view('admin.atenciones.full', compact('atenciones', 'cajaAbierta'));
@@ -41,22 +62,47 @@ class AtencionController extends Controller
 
     public function show(Atencion $atencione)
     {
-        $atencione->load('cliente', 'user', 'productos', 'servicios');
+        $atencione->load('cliente', 'user', 'anuladaPor', 'productos', 'servicios', 'pagos.metodoPago');
+        $presentaciones = $this->presentacionesDe($atencione);
+        $lotesPorProducto = LoteConsumo::with('lote')
+            ->where('referencia_tipo', 'Atencion')
+            ->where('referencia_id', $atencione->id_atencion)
+            ->get()
+            ->groupBy(fn ($consumo) => $consumo->lote?->producto_id);
 
         if (request()->ajax()) {
-            return view('admin.atenciones.show', compact('atencione'));
+            return view('admin.atenciones.show', compact('atencione', 'presentaciones', 'lotesPorProducto'));
         }
 
         return redirect()->route('admin.atenciones.index');
     }
 
+    public function ticket(Atencion $atencione)
+    {
+        $atencione->load('cliente', 'user', 'anuladaPor', 'productos', 'servicios', 'pagos.metodoPago');
+        $presentaciones = $this->presentacionesDe($atencione);
+        $nueva = request()->boolean('nueva');
+
+        return view('admin.atenciones.ticket', [
+            'atencione' => $atencione,
+            'presentaciones' => $presentaciones,
+            'nueva' => $nueva,
+            'titulo' => 'Ticket '.$atencione->correlativo,
+            'volverUrl' => route('admin.atenciones.index'),
+            'aviso' => $nueva
+                ? 'Atención registrada correctamente. Puede imprimir el ticket o volver al panel sin imprimirlo.'
+                : null,
+        ]);
+    }
+
     public function create()
     {
         if (request()->ajax()) {
-            $productos = Producto::where('estado', 1)->where('stock', '>', 0)->orderBy('nombre')->get();
+            $presentaciones = $this->presentacionesDisponibles();
             $servicios = Servicio::orderBy('nombre')->get();
+            $metodosPago = MetodoPago::activos()->orderBy('nombre')->get();
 
-            return view('admin.atenciones.create', compact('productos', 'servicios'));
+            return view('admin.atenciones.create', compact('presentaciones', 'servicios', 'metodosPago'));
         }
 
         return redirect()->route('admin.atenciones.index');
@@ -64,8 +110,7 @@ class AtencionController extends Controller
 
     public function store(StoreAtencionRequest $request)
     {
-        $cajaAbierta = Caja::abierta()->first();
-        if (! $cajaAbierta) {
+        if (! Caja::abierta()->exists()) {
             if ($request->ajax()) {
                 return response()->json([
                     'success' => false,
@@ -79,7 +124,7 @@ class AtencionController extends Controller
         $data = $request->validated();
 
         try {
-            $atencion = DB::transaction(function () use ($data, $cajaAbierta) {
+            $atencion = DB::transaction(function () use ($data) {
                 if (empty($data['cliente_id_cliente']) && ! empty($data['cliente_data'])) {
                     $cliente = Cliente::create([
                         'dni' => $data['cliente_data']['dni'],
@@ -94,61 +139,64 @@ class AtencionController extends Controller
                     $data['cliente_id_cliente'] = $cliente->id_cliente;
                 }
 
-                $total = 0;
-
-                if (! empty($data['productos'])) {
-                    $total += collect($data['productos'])->sum(fn ($p) => $p['cantidad'] * $p['precio']);
-                }
-                if (! empty($data['servicios'])) {
-                    $total += collect($data['servicios'])->sum(fn ($s) => $s['precio']);
-                }
+                $lineas = $this->resolverLineas($data['productos'] ?? []);
+                $total = $this->sumarTotales($lineas, $data['servicios'] ?? []);
 
                 $atencion = Atencion::create([
+                    'correlativo' => null,
                     'observacio' => $data['observacio'] ?? null,
                     'total' => $total,
                     'cliente_id_cliente' => $data['cliente_id_cliente'],
                     'user_id' => auth()->id(),
+                    'estado' => Atencion::ESTADO_CONFIRMADA,
                 ]);
 
-                if (! empty($data['productos'])) {
-                    foreach ($data['productos'] as $p) {
-                        $subTotal = $p['cantidad'] * $p['precio'];
-                        $atencion->productos()->attach($p['producto_id_producto'], [
-                            'cantidad' => $p['cantidad'],
-                            'sub_total' => $subTotal,
-                        ]);
-
-                        $producto = Producto::findOrFail($p['producto_id_producto']);
-                        $producto->decrement('stock', $p['cantidad']);
-                        KardexHelper::registrar(
-                            $producto,
-                            'ATENCION',
-                            'Atencion',
-                            $atencion->id_atencion,
-                            '#'.$atencion->id_atencion,
-                            -$p['cantidad'],
-                            'Atención registrada'
-                        );
-                    }
-                }
-
-                if (! empty($data['servicios'])) {
-                    foreach ($data['servicios'] as $s) {
-                        $atencion->servicios()->attach($s['servicio_id_servicio'], [
-                            'subtotal' => $s['precio'],
-                        ]);
-                    }
-                }
-
-                CajaMovimiento::create([
-                    'caja_id_caja' => $cajaAbierta->id_caja,
-                    'tipo' => 'ingreso',
-                    'monto' => $total,
-                    'referencia_tipo' => 'atencion',
-                    'referencia_id' => $atencion->id_atencion,
-                    'user_id' => auth()->id(),
+                $atencion->update([
+                    'correlativo' => $this->generarCorrelativo($atencion->id_atencion),
                 ]);
-                $cajaAbierta->increment('total_ingresos', $total);
+
+                foreach ($lineas as $linea) {
+                    $detalleId = DB::table('atencion_producto')->insertGetId([
+                        'atencion_id_atencion' => $atencion->id_atencion,
+                        'producto_id_producto' => $linea['producto']->id_producto,
+                        'producto_presentacion_id' => $linea['presentacion']->id_producto_presentacion,
+                        'cantidad' => $linea['cantidad'],
+                        'factor' => $linea['presentacion']->factor,
+                        'cantidad_base' => $linea['cantidad_base'],
+                        'precio_unitario' => $linea['precio'],
+                        'sub_total' => $linea['sub_total'],
+                    ]);
+
+                    $consumo = $this->inventario->consumir(
+                        $linea['presentacion'],
+                        $linea['cantidad'],
+                        'ATENCION',
+                        'Atencion',
+                        $atencion->id_atencion,
+                        $atencion->correlativo,
+                        'Atención registrada'
+                    );
+
+                    DB::table('atencion_producto')->where('id_atencion_producto', $detalleId)->update([
+                        'costo_total' => $consumo['costo_total'],
+                    ]);
+                }
+
+                foreach ($data['servicios'] as $servicio) {
+                    $atencion->servicios()->attach($servicio['servicio_id_servicio'], [
+                        'subtotal' => $servicio['precio'],
+                    ]);
+                }
+
+                $this->cajas->registrarPagos(
+                    'atencion',
+                    $atencion->id_atencion,
+                    $data['pagos'],
+                    "Atención {$atencion->correlativo}",
+                    auth()->id()
+                );
+
+                $this->pagos->registrar(Pago::TIPO_ATENCION, $atencion->id_atencion, $data['pagos'], auth()->id());
 
                 return $atencion;
             });
@@ -166,161 +214,183 @@ class AtencionController extends Controller
         $this->olvidaIndex('atenciones');
         $this->olvidaIndex('productos');
         $this->olvidaIndex('caja');
-        $this->auditarCrear($atencion, 'atenciones', "Registró la atención #{$atencion->id_atencion} por S/ {$atencion->total}");
+        $this->auditarCrear($atencion, 'atenciones', "Registró la atención {$atencion->correlativo} por S/ {$atencion->total}");
+
+        // Al concretar la atención se muestra el ticket para imprimirlo.
+        $ticketUrl = route('admin.atenciones.ticket', [
+            'atencione' => $atencion->id_atencion,
+            'nueva' => 1,
+        ]);
 
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Atención registrada correctamente',
                 'atencion' => $atencion->load('cliente', 'user', 'productos', 'servicios'),
+                'redirect' => $ticketUrl,
             ]);
         }
 
-        return redirect()->route('admin.atenciones.index')->with('success', 'Atención registrada correctamente');
+        return redirect()->to($ticketUrl);
     }
 
     public function edit(Atencion $atencione)
     {
-        if (request()->ajax()) {
-            $productos = Producto::where('estado', 1)->orderBy('nombre')->get();
-            $servicios = Servicio::orderBy('nombre')->get();
-            $atencione->load('productos', 'servicios', 'cliente');
-            $selectedCliente = $atencione->cliente;
-
-            return view('admin.atenciones.edit', compact('atencione', 'productos', 'servicios', 'selectedCliente'));
-        }
-
-        return redirect()->route('admin.atenciones.index');
+        return $this->respuestaBloqueo(
+            request(),
+            'Las atenciones confirmadas no se editan. Si hubo un error, anula la atención con un motivo.'
+        );
     }
 
-    public function update(UpdateAtencionRequest $request, Atencion $atencione)
+    public function update(Request $request, Atencion $atencione)
     {
-        $data = $request->validated();
-
-        DB::transaction(function () use ($data, $atencione) {
-            foreach ($atencione->productos as $old) {
-                Producto::where('id_producto', $old->id_producto)
-                    ->increment('stock', $old->pivot->cantidad);
-            }
-            KardexHelper::eliminarPorReferencia('Atencion', $atencione->id_atencion);
-
-            $atencione->productos()->detach();
-            $atencione->servicios()->detach();
-
-            $total = 0;
-
-            if (! empty($data['productos'])) {
-                $total += collect($data['productos'])->sum(fn ($p) => $p['cantidad'] * $p['precio']);
-
-                foreach ($data['productos'] as $p) {
-                    $subTotal = $p['cantidad'] * $p['precio'];
-                    $atencione->productos()->attach($p['producto_id_producto'], [
-                        'cantidad' => $p['cantidad'],
-                        'sub_total' => $subTotal,
-                    ]);
-
-                    $producto = Producto::findOrFail($p['producto_id_producto']);
-                    $producto->decrement('stock', $p['cantidad']);
-                    KardexHelper::registrar(
-                        $producto,
-                        'ATENCION',
-                        'Atencion',
-                        $atencione->id_atencion,
-                        '#'.$atencione->id_atencion,
-                        -$p['cantidad'],
-                        'Atención registrada'
-                    );
-                }
-            }
-
-            if (! empty($data['servicios'])) {
-                $total += collect($data['servicios'])->sum(fn ($s) => $s['precio']);
-
-                foreach ($data['servicios'] as $s) {
-                    $atencione->servicios()->attach($s['servicio_id_servicio'], [
-                        'subtotal' => $s['precio'],
-                    ]);
-                }
-            }
-
-            $atencione->update([
-                'total' => $total,
-                'observacio' => $data['observacio'] ?? null,
-                'cliente_id_cliente' => $data['cliente_id_cliente'],
-            ]);
-
-            $cajaAbierta = Caja::abierta()->first();
-            if ($cajaAbierta) {
-                $oldMovimiento = CajaMovimiento::where('caja_id_caja', $cajaAbierta->id_caja)
-                    ->where('referencia_tipo', 'atencion')
-                    ->where('referencia_id', $atencione->id_atencion)
-                    ->first();
-                if ($oldMovimiento) {
-                    $diferencia = $total - $oldMovimiento->monto;
-                    $oldMovimiento->update(['monto' => $total]);
-                    if ($diferencia != 0) {
-                        if ($diferencia > 0) {
-                            $cajaAbierta->increment('total_ingresos', $diferencia);
-                        } else {
-                            $cajaAbierta->decrement('total_ingresos', abs($diferencia));
-                        }
-                    }
-                }
-            }
-        });
-
-        $this->olvidaIndex('atenciones');
-        $this->olvidaIndex('productos');
-        $this->olvidaIndex('caja');
-        $this->auditarActualizar($atencione, 'atenciones', "Actualizó la atención #{$atencione->id_atencion}");
-
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Atención actualizada correctamente',
-                'atencion' => $atencione->fresh()->load('cliente', 'user', 'productos', 'servicios'),
-            ]);
-        }
-
-        return redirect()->route('admin.atenciones.index')->with('success', 'Atención actualizada correctamente');
+        return $this->respuestaBloqueo(
+            $request,
+            'Las atenciones confirmadas no se editan. Si hubo un error, anula la atención con un motivo.'
+        );
     }
 
     public function destroy(Atencion $atencione)
     {
-        DB::transaction(function () use ($atencione) {
-            foreach ($atencione->productos as $old) {
-                Producto::where('id_producto', $old->id_producto)
-                    ->increment('stock', $old->pivot->cantidad);
-            }
-            KardexHelper::eliminarPorReferencia('Atencion', $atencione->id_atencion);
+        return $this->respuestaBloqueo(
+            request(),
+            'Las atenciones no se eliminan. Anula la atención con un motivo para conservar la trazabilidad.'
+        );
+    }
 
-            $atencione->productos()->detach();
-            $atencione->servicios()->detach();
+    public function formAnular(Atencion $atencione)
+    {
+        if ($atencione->estaAnulada()) {
+            return $this->respuestaBloqueo(request(), 'La atención ya fue anulada.');
+        }
 
-            $cajaAbierta = Caja::abierta()->first();
-            if ($cajaAbierta) {
-                CajaMovimiento::where('caja_id_caja', $cajaAbierta->id_caja)
-                    ->where('referencia_tipo', 'atencion')
-                    ->where('referencia_id', $atencione->id_atencion)
-                    ->delete();
-                $cajaAbierta->decrement('total_ingresos', $atencione->total);
-            }
+        if (! $this->esAjax(request())) {
+            return redirect()->route('admin.atenciones.index');
+        }
 
-            $atencione->delete();
-        });
+        $atencione->load('cliente', 'user');
+
+        return view('admin.atenciones.anular', compact('atencione'));
+    }
+
+    public function anular(AnularAtencionRequest $request, Atencion $atencione)
+    {
+        try {
+            $atencione = $this->anulaciones->anular(
+                $atencione,
+                $request->validated()['motivo_anulacion'],
+                auth()->id()
+            );
+        } catch (\RuntimeException $e) {
+            return $this->error($request, $e->getMessage());
+        }
 
         $this->olvidaIndex('atenciones');
         $this->olvidaIndex('productos');
         $this->olvidaIndex('caja');
-        $this->auditarEliminar($atencione, 'atenciones', "Eliminó la atención #{$atencione->id_atencion}");
+        $this->auditarActualizar(
+            $atencione,
+            'atenciones',
+            "Anuló la atención {$atencione->correlativo}: {$atencione->motivo_anulacion}"
+        );
 
-        if (request()->ajax()) {
+        if ($this->esAjax($request)) {
             return response()->json([
                 'success' => true,
-                'message' => 'Atención eliminada correctamente',
+                'message' => 'Atención anulada y stock revertido correctamente.',
+                'atencion' => $atencione,
             ]);
         }
 
-        return redirect()->route('admin.atenciones.index')->with('success', 'Atención eliminada correctamente');
+        return redirect()->route('admin.atenciones.index')
+            ->with('success', 'Atención anulada correctamente.');
+    }
+
+    private function respuestaBloqueo(Request $request, string $mensaje)
+    {
+        return $this->error($request, $mensaje);
+    }
+
+    private function error(Request $request, string $mensaje)
+    {
+        if ($this->esAjax($request)) {
+            return response()->json([
+                'success' => false,
+                'message' => $mensaje,
+            ], 422);
+        }
+
+        return redirect()->route('admin.atenciones.index')->with('error', $mensaje);
+    }
+
+    private function esAjax(Request $request): bool
+    {
+        return $request->ajax() || $request->expectsJson();
+    }
+
+    private function presentacionesDisponibles(bool $soloConStock = true)
+    {
+        return ProductoPresentacion::with(['producto.unidadBase', 'producto.lotesVendibles', 'presentacion'])
+            ->where('activo', true)
+            ->whereHas('producto', function ($q) use ($soloConStock) {
+                $q->where('estado', 1);
+
+                if ($soloConStock) {
+                    $q->conStockVendible();
+                }
+            })
+            ->join('producto', 'producto.id_producto', '=', 'producto_presentacion.producto_id_producto')
+            ->orderBy('producto.nombre')
+            ->select('producto_presentacion.*')
+            ->get();
+    }
+
+    private function presentacionesDe(Atencion $atencion)
+    {
+        $ids = $atencion->productos->pluck('pivot.producto_presentacion_id')->filter()->unique();
+
+        return ProductoPresentacion::with('presentacion')
+            ->whereIn('id_producto_presentacion', $ids)
+            ->get()
+            ->keyBy('id_producto_presentacion');
+    }
+
+    private function resolverLineas(array $productos): array
+    {
+        return collect($productos)->map(function ($p) {
+            $presentacion = ProductoPresentacion::with('producto')
+                ->findOrFail($p['producto_presentacion_id']);
+
+            $cantidad = (string) $p['cantidad'];
+            $precio = (string) $presentacion->precio_venta;
+            $subTotal = CantidadHelper::redondear(
+                CantidadHelper::multiplicar($cantidad, $precio, 4),
+                2
+            );
+
+            return [
+                'presentacion' => $presentacion,
+                'producto' => $presentacion->producto,
+                'cantidad' => $cantidad,
+                'precio' => $precio,
+                'sub_total' => $subTotal,
+                'cantidad_base' => CantidadHelper::aBase($cantidad, $presentacion->factor),
+            ];
+        })->all();
+    }
+
+    private function sumarTotales(array $lineas, array $servicios): string
+    {
+        $total = '0.00';
+
+        foreach ($lineas as $linea) {
+            $total = CantidadHelper::sumar($total, $linea['sub_total'], 2);
+        }
+
+        foreach ($servicios as $servicio) {
+            $total = CantidadHelper::sumar($total, $servicio['precio'], 2);
+        }
+
+        return $total;
     }
 }

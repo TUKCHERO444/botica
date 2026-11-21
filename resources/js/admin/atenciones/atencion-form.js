@@ -2,21 +2,6 @@ export function initAtencionForm({ productStartIndex = 1, serviceStartIndex = 1 
   let prodRowIndex = productStartIndex;
   let servRowIndex = serviceStartIndex;
 
-  const mc = document.getElementById('modal-container');
-  if (!mc) return;
-
-  mc.classList.remove('max-w-lg');
-  mc.classList.add('max-w-5xl');
-
-  const resetObserver = new MutationObserver(() => {
-    if (mc.children.length === 0) {
-      mc.classList.remove('max-w-5xl');
-      mc.classList.add('max-w-lg');
-      resetObserver.disconnect();
-    }
-  });
-  resetObserver.observe(mc, { childList: true });
-
   const prodContainer = document.getElementById('productos-container');
   const servContainer = document.getElementById('servicios-container');
   const btnAgregarProd = document.getElementById('agregar-producto');
@@ -25,13 +10,15 @@ export function initAtencionForm({ productStartIndex = 1, serviceStartIndex = 1 
 
   if (!totalSpan) return;
 
+  const form = totalSpan.closest('form');
+
   function recalcularTotal() {
     let total = 0;
 
     if (prodContainer) {
       prodContainer.querySelectorAll('.producto-row').forEach((row) => {
         const precio = parseFloat(row.querySelector('.producto-precio')?.value) || 0;
-        const cantidad = parseInt(row.querySelector('.producto-cantidad')?.value) || 0;
+        const cantidad = parseFloat(row.querySelector('.producto-cantidad')?.value) || 0;
         const sub = precio * cantidad;
         total += sub;
         const subEl = row.querySelector('.producto-subtotal');
@@ -49,6 +36,43 @@ export function initAtencionForm({ productStartIndex = 1, serviceStartIndex = 1 
     }
 
     totalSpan.textContent = 'S/ ' + total.toFixed(2);
+
+    if (form) {
+      form.dispatchEvent(new CustomEvent('total:changed', { detail: { total } }));
+    }
+  }
+
+  function actualizarAdvertenciaProducto(row) {
+    const select = row.querySelector('.producto-select');
+    const cantidad = row.querySelector('.producto-cantidad');
+    const advertencia = row.querySelector('.producto-advertencia');
+
+    if (!select || !advertencia) return;
+
+    const option = select.options[select.selectedIndex];
+
+    if (!option || !option.value) {
+      advertencia.textContent = '';
+      advertencia.classList.add('hidden');
+      return;
+    }
+
+    const factor = parseFloat(option.dataset.factor) || 1;
+    const vendible = parseFloat(option.dataset.stockVendible) || 0;
+    const minimo = parseFloat(option.dataset.stockMinimo) || 0;
+    const cantidadBase = (parseFloat(cantidad?.value) || 0) * factor;
+
+    let mensaje = '';
+    if (vendible <= 0) {
+      mensaje = 'Sin stock vendible.';
+    } else if (cantidadBase > vendible) {
+      mensaje = 'La cantidad supera el stock vendible.';
+    } else if (minimo > 0 && vendible - cantidadBase < minimo) {
+      mensaje = 'Quedará por debajo del stock mínimo.';
+    }
+
+    advertencia.textContent = mensaje;
+    advertencia.classList.toggle('hidden', !mensaje);
   }
 
   function configurarProductoRow(row) {
@@ -61,13 +85,25 @@ export function initAtencionForm({ productStartIndex = 1, serviceStartIndex = 1 
       select.addEventListener('change', function () {
         const option = this.options[this.selectedIndex];
         const p = option ? parseFloat(option.dataset.precio) || 0 : 0;
+        const paso = option ? parseFloat(option.dataset.paso) || 1 : 1;
         precio.value = p.toFixed(2);
+        if (cantidad) {
+          cantidad.step = paso;
+          cantidad.min = paso;
+          if (parseFloat(cantidad.value) < paso) {
+            cantidad.value = paso;
+          }
+        }
         recalcularTotal();
+        actualizarAdvertenciaProducto(row);
       });
     }
 
     if (cantidad) {
-      cantidad.addEventListener('input', recalcularTotal);
+      cantidad.addEventListener('input', () => {
+        recalcularTotal();
+        actualizarAdvertenciaProducto(row);
+      });
     }
 
     if (eliminar) {

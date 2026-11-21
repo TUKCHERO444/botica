@@ -193,7 +193,7 @@
                     <tbody>
                         @foreach ($cliente->atenciones as $atencion)
                             <tr class="border-b border-stone-100">
-                                <td class="py-2.5 pr-4 text-stone-800">A-{{ str_pad($atencion->id_atencion, 3, '0', STR_PAD_LEFT) }}</td>
+                                <td class="py-2.5 pr-4 text-stone-800">{{ $atencion->correlativo }}</td>
                                 <td class="py-2.5 pr-4 text-stone-500">{{ $atencion->created_at?->format('d/m/Y') }}</td>
                                 <td class="py-2.5 text-right font-medium text-stone-800">S/ {{ number_format($atencion->total, 2) }}</td>
                             </tr>

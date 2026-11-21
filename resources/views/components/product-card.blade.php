@@ -16,7 +16,7 @@
             </div>
         @endif
 
-        @if($producto->stock === 0)
+        @if($producto->stock <= 0)
             <span class="absolute top-2 left-2 bg-amber-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
                 Sin stock
             </span>
@@ -31,7 +31,10 @@
             {{ $producto->nombre }}
         </h3>
         <p class="text-emerald-700 font-bold mt-auto pt-3 text-base sm:text-lg lg:text-xl">
-            S/ {{ number_format($producto->precio_venta, 2) }}
+            @if ($producto->presentaciones->where('activo', true)->count() > 1)
+                <span class="text-xs font-medium text-stone-500">Desde</span>
+            @endif
+            S/ {{ number_format($producto->precio_desde, 2) }}
         </p>
     </div>
 </a>

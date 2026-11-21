@@ -14,13 +14,13 @@ class UpdateComboRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre'             => 'required|string|max:255',
-            'descripcion'        => 'nullable|string|max:500',
-            'imagen'             => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-            'precio_sugerido'    => 'required|numeric|min:0',
-            'activo'             => 'boolean',
-            'productos'          => 'required|array|min:1',
-            'productos.*.id'     => 'required|integer|exists:producto,id_producto',
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string|max:500',
+            'imagen' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'precio_sugerido' => 'required|numeric|decimal:0,2|min:0',
+            'activo' => 'boolean',
+            'productos' => 'required|array|min:1',
+            'productos.*.id' => 'required|integer|exists:producto,id_producto',
             'productos.*.cantidad' => 'required|integer|min:1',
         ];
     }
@@ -28,12 +28,12 @@ class UpdateComboRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'nombre'             => 'nombre del combo',
-            'descripcion'        => 'descripción',
-            'imagen'             => 'imagen del combo',
-            'precio_sugerido'    => 'precio sugerido',
-            'productos'          => 'productos',
-            'productos.*.id'     => 'producto',
+            'nombre' => 'nombre del combo',
+            'descripcion' => 'descripción',
+            'imagen' => 'imagen del combo',
+            'precio_sugerido' => 'precio sugerido',
+            'productos' => 'productos',
+            'productos.*.id' => 'producto',
             'productos.*.cantidad' => 'cantidad',
         ];
     }

@@ -30,6 +30,7 @@
 <body>
     <div class="header">
         <h1>{{ $titulo }}</h1>
+        @include('admin.reportes.pdf.partials.negocio')
         @if ($desde || $hasta)
         <p>Período: {{ $desde ?? 'Inicio' }} al {{ $hasta ?? 'Actual' }} | Emitido: {{ now()->format('d/m/Y H:i') }}</p>
         @else
@@ -39,9 +40,19 @@
 
     <div class="summary">
         <div class="summary-card">
-            <div class="label">Registros</div>
+            <div class="label">Registros mostrados</div>
             <div class="value">{{ $cantidad }}</div>
         </div>
+        <div class="summary-card">
+            <div class="label">Registros totales</div>
+            <div class="value">{{ $total }}</div>
+        </div>
+        @if ($truncado)
+        <div class="summary-card" style="border-color:#fca5a5;background:#fef2f2;">
+            <div class="label" style="color:#991b1b;">Aviso</div>
+            <div class="value" style="color:#dc2626;font-size:9pt;">Mostrando los últimos 500. Ajuste los filtros.</div>
+        </div>
+        @endif
     </div>
 
     <table>
@@ -95,7 +106,8 @@
     </table>
 
     <div class="footer">
-        Página {PAGE_NUM} de {PAGE_COUNT} | Generado por {{ auth()->user()?->name ?? 'Sistema' }}
+        Generado por {{ auth()->user()?->name ?? 'Sistema' }}
     </div>
+@include('admin.reportes.pdf.partials.paginacion')
 </body>
 </html>

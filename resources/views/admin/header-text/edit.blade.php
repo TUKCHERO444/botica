@@ -1,4 +1,4 @@
-<form action="{{ route('admin.header-text.update', $headerText) }}" method="POST" class="p-6">
+<form data-modal-size="md" action="{{ route('admin.header-text.update', $headerText) }}" method="POST" class="p-6">
     @csrf
     @method('PUT')
     <div class="flex items-center justify-between mb-6">

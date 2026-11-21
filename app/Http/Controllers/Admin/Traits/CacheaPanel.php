@@ -14,7 +14,5 @@ trait CacheaPanel
         return $callback();
     }
 
-    protected function olvidaIndex(string $modulo): void
-    {
-    }
+    protected function olvidaIndex(string $modulo): void {}
 }

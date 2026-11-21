@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Ingresos - Botica')
+@section('title', 'Compras - Botica')
 
 @section('content')
     @include('admin.ingresos.index')

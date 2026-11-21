@@ -1,6 +1,18 @@
 import axios from 'axios';
 import AdminRouter from './router';
 
+const MODAL_SIZES = {
+    sm: 'max-w-lg',
+    md: 'max-w-2xl',
+    lg: 'max-w-3xl',
+    xl: 'max-w-4xl',
+    '2xl': 'max-w-5xl',
+    '3xl': 'max-w-6xl',
+    '4xl': 'max-w-7xl',
+};
+
+const MODAL_SIZE_CLASSES = Object.values(MODAL_SIZES);
+
 const AdminModal = {
     init() {
         this.$overlay = document.getElementById('modal-overlay');
@@ -15,7 +27,8 @@ const AdminModal = {
             if (trigger) {
                 e.preventDefault();
                 const url = trigger.getAttribute('data-modal');
-                this.open(url);
+                const size = trigger.getAttribute('data-modal-size');
+                this.open(url, size);
             }
 
             if (e.target.closest('[data-close-modal]')) {
@@ -42,10 +55,11 @@ const AdminModal = {
         });
     },
 
-    async open(url) {
+    async open(url, size = null) {
         try {
             const res = await axios.get(url);
             this.$container.innerHTML = res.data;
+            this.applySizeFromContent(size);
             this.$container.querySelectorAll('script').forEach((old) => {
                 const s = document.createElement('script');
                 if (old.src) {
@@ -64,9 +78,27 @@ const AdminModal = {
         }
     },
 
+    applySize(size = 'xl') {
+        if (!this.$container) return;
+
+        this.$container.classList.remove(...MODAL_SIZE_CLASSES);
+        this.$container.classList.add(MODAL_SIZES[size] || MODAL_SIZES.xl);
+    },
+
+    applySizeFromContent(fallback = null) {
+        if (!this.$container) return;
+
+        const declared = this.$container
+            .querySelector('[data-modal-size]')
+            ?.getAttribute('data-modal-size');
+
+        this.applySize(declared || fallback || 'xl');
+    },
+
     close() {
         this.$overlay?.classList.add('hidden');
         if (this.$container) this.$container.innerHTML = '';
+        this.applySize('xl');
         document.body.classList.remove('overflow-hidden');
     },
 
@@ -91,6 +123,13 @@ const AdminModal = {
 
             if (res.data.success) {
                 this.close();
+
+                // Algunos flujos (p. ej. venta) piden mostrar una pantalla completa después de guardar.
+                if (res.data.redirect) {
+                    window.location.href = res.data.redirect;
+                    return;
+                }
+
                 await AdminRouter.load(window.location.href, false);
                 AdminToast.show(res.data.message, 'success');
             }

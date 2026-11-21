@@ -82,18 +82,77 @@ function buildClientSearch(container) {
   input.className = 'flex-1 min-w-0 rounded-lg border border-stone-300 px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none';
   searchRow.appendChild(input);
 
+  const verifyBtn = document.createElement('button');
+  verifyBtn.type = 'button';
+  verifyBtn.className = 'px-2.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-300 text-white rounded-lg text-sm transition disabled:cursor-not-allowed whitespace-nowrap';
+  verifyBtn.disabled = true;
+  verifyBtn.title = 'Verificar cliente en la base de datos';
+  verifyBtn.textContent = 'Verificar cliente';
+  searchRow.appendChild(verifyBtn);
+
   const reniecBtn = document.createElement('button');
   reniecBtn.type = 'button';
-  reniecBtn.className = 'reniec-search-btn px-2.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-stone-300 text-white rounded-lg text-sm transition disabled:cursor-not-allowed';
+  reniecBtn.className = 'reniec-search-btn px-2.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-stone-300 text-white rounded-lg text-sm transition disabled:cursor-not-allowed whitespace-nowrap';
   reniecBtn.disabled = true;
   reniecBtn.title = 'Buscar DNI en RENIEC';
-  reniecBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>';
+  reniecBtn.innerHTML = '<svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg> RENIEC';
   searchRow.appendChild(reniecBtn);
 
+  let verificando = false;
   let reniecLoading = false;
+  let clienteNoRegistrado = false;
+  let dniVerificado = '';
+
+  function reiniciarVerificacion() {
+    clienteNoRegistrado = false;
+    dniVerificado = '';
+    reniecBtn.disabled = true;
+  }
+
+  verifyBtn.addEventListener('click', async function () {
+    const dni = input.value.trim();
+    if (!/^\d{8}$/.test(dni) || verificando) return;
+
+    verificando = true;
+    verifyBtn.disabled = true;
+    const htmlOriginal = verifyBtn.textContent;
+    verifyBtn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>';
+
+    try {
+      const res = await axios.post('/admin/clientes/verificar-dni', { dni });
+
+      if (res.data.success && res.data.exists) {
+        const c = res.data.cliente;
+        const text = `${c.nombre} ${c.apellido_paterno || ''} ${c.apellido_materno || ''} — ${c.dni}`;
+        selectedClient = { id: c.id_cliente, text, registroWeb: Boolean(c.registro_web) };
+        hidden.value = c.id_cliente;
+        showSelected(text);
+        results.classList.add('hidden');
+        limpiarClienteData();
+      } else {
+        clienteNoRegistrado = true;
+        dniVerificado = dni;
+        reniecBtn.disabled = false;
+        showInfoToast('Cliente no registrado. Puedes buscar el DNI en RENIEC.');
+      }
+    } catch (err) {
+      showErrorToast(err.response?.data?.message || 'Error al verificar el cliente.');
+    } finally {
+      verificando = false;
+      verifyBtn.innerHTML = htmlOriginal;
+      const actual = input.value.trim();
+      verifyBtn.disabled = !/^\d{8}$/.test(actual) || (clienteNoRegistrado && actual === dniVerificado);
+    }
+  });
+
   reniecBtn.addEventListener('click', async function () {
     const dni = input.value.trim();
     if (!/^\d{8}$/.test(dni) || reniecLoading) return;
+
+    if (!clienteNoRegistrado || dniVerificado !== dni) {
+      showInfoToast('Primero verifica el cliente en la base de datos.');
+      return;
+    }
 
     reniecLoading = true;
     reniecBtn.disabled = true;
@@ -123,8 +182,8 @@ function buildClientSearch(container) {
       showErrorToast(msg);
     } finally {
       reniecLoading = false;
-      reniecBtn.disabled = false;
-      reniecBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>';
+      reniecBtn.disabled = !(clienteNoRegistrado && dniVerificado === input.value.trim());
+      reniecBtn.innerHTML = '<svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg> RENIEC';
     }
   });
 
@@ -187,6 +246,14 @@ function buildClientSearch(container) {
     }
   }
 
+  function showInfoToast(message) {
+    if (window.showToast) {
+      window.showToast(message, 'info');
+    } else {
+      alert(message);
+    }
+  }
+
   const selected = document.createElement('div');
   selected.className = 'hidden';
   container.appendChild(selected);
@@ -236,6 +303,8 @@ function buildClientSearch(container) {
     selectedClient = null;
     hidden.value = '';
     limpiarClienteData();
+    reiniciarVerificacion();
+    verifyBtn.disabled = true;
     showInput();
   }
 
@@ -243,7 +312,11 @@ function buildClientSearch(container) {
     const q = this.value.trim();
     if (currentTimeout) clearTimeout(currentTimeout);
 
-    reniecBtn.disabled = !/^\d{8}$/.test(q);
+    if (q !== dniVerificado) {
+      reiniciarVerificacion();
+    }
+
+    verifyBtn.disabled = !/^\d{8}$/.test(q) || verificando || reniecLoading;
 
     if (q.length < 2) {
       results.classList.add('hidden');

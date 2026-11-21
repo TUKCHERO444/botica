@@ -1,11 +1,19 @@
 # Integración API RENIEC — dacoleta.api
 
+> ⚠️ **Documento histórico parcial (2026-11-20).** El proveedor vigente para la
+> consulta DNI es **json.pe** (`POST https://api.json.pe/api/dni`) mediante
+> `JsonPeClient`. La especificación actual está en
+> [`integracion-jsonpe.md`](integracion-jsonpe.md). Las secciones de este
+> documento que describen decolecta (endpoint, request/response, configuración y
+> variables de entorno) ya **no** aplican. El flujo funcional, controladores,
+> reglas de negocio y frontend siguen siendo válidos.
+
 > **Versión:** 1.0.0  
 > **Fecha:** 2026-06-21  
 > **Módulos afectados:** Clientes, Ventas, Atenciones, Registro Público  
-> **Proveedor:** [dacoleta.api](https://api.decolecta.com)  
+> **Proveedor:** [dacoleta.api](https://api.decolecta.com) (reemplazado por json.pe para DNI)  
 > **Endpoints involucrados:** `GET https://api.decolecta.com/v1/reniec/dni?numero={dni}`  
-> **Estado:** Pendiente de implementación
+> **Estado:** Reemplazado para DNI; ver `integracion-jsonpe.md`
 
 ---
 

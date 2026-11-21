@@ -1,5 +1,7 @@
 # Plan de Implementación — Eliminación de la Lógica de Ingresos por Lotes
 
+> **Documento histórico.** Describe la eliminación de la lógica de lotes anterior (commit `ade7c19`). Esa decisión fue reevaluada y reemplazada por el rediseño de [`plan-lotes-fefo-v2.md`](plan-lotes-fefo-v2.md), ya implementado. No usar este documento como especificación vigente.
+
 ## 1. Objetivo
 
 Eliminar del código del proyecto toda la lógica de **ingreso/registro de productos basada en lotes** (FEFO), considerada errónea, y restaurar la lógica anterior de creación de productos/ingresos donde el stock se maneja de forma directa:

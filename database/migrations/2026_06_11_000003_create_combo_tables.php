@@ -24,7 +24,11 @@ return new class extends Migration
             $table->foreignId('combo_id_combo')->constrained('combo', 'id_combo')->onDelete('cascade');
             $table->integer('producto_id_producto');
             $table->foreign('producto_id_producto')->references('id_producto')->on('producto');
-            $table->integer('cantidad')->default(1);
+            $table->foreignId('producto_presentacion_id')
+                ->nullable()
+                ->constrained('producto_presentacion', 'id_producto_presentacion')
+                ->nullOnDelete();
+            $table->decimal('cantidad', 12, 3)->default(1);
         });
     }
 

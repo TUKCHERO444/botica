@@ -13,7 +13,12 @@ return new class extends Migration
             $table->unsignedBigInteger('carrito_id_carrito');
             $table->string('item_type', 20);
             $table->integer('item_id');
-            $table->integer('cantidad')->default(1);
+            $table->foreignId('producto_presentacion_id')
+                ->nullable()
+                ->constrained('producto_presentacion', 'id_producto_presentacion')
+                ->nullOnDelete();
+            $table->decimal('cantidad', 12, 3)->default(1);
+            $table->decimal('precio_unitario', 12, 4)->nullable();
             $table->timestamps();
 
             $table->foreign('carrito_id_carrito')
@@ -21,7 +26,10 @@ return new class extends Migration
                   ->on('carrito')
                   ->onDelete('cascade');
 
-            $table->unique(['carrito_id_carrito', 'item_type', 'item_id'], 'carrito_item_unique');
+            $table->unique(
+                ['carrito_id_carrito', 'item_type', 'item_id', 'producto_presentacion_id'],
+                'carrito_item_unique'
+            );
         });
     }
 

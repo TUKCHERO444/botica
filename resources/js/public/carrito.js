@@ -1,5 +1,4 @@
-function getCartCount() {
-    fetch('/carrito-count')
+function getCartCount() {    fetch('/carrito-count')
         .then(r => r.json())
         .then(d => updateBadge(d.count))
         .catch(() => {});
@@ -14,6 +13,40 @@ function updateBadge(count) {
             badge.classList.add('hidden');
         }
     });
+}
+
+const presentacionSelect = document.getElementById('presentacion-select');
+const cantidadProducto = document.getElementById('cantidad-producto');
+const precioProducto = document.getElementById('precio-producto');
+const presentacionStock = document.getElementById('presentacion-stock');
+
+function sincronizarPresentacion() {
+    if (!presentacionSelect) return;
+
+    const option = presentacionSelect.options[presentacionSelect.selectedIndex];
+    if (!option) return;
+
+    const precio = parseFloat(option.dataset.precio) || 0;
+    const paso = parseFloat(option.dataset.paso) || 1;
+
+    if (precioProducto) {
+        precioProducto.textContent = 'S/ ' + precio.toFixed(2);
+    }
+    if (presentacionStock) {
+        presentacionStock.textContent = 'Stock: ' + (option.dataset.stock || '0');
+    }
+    if (cantidadProducto) {
+        cantidadProducto.step = paso;
+        cantidadProducto.min = 0.001;
+        if ((parseFloat(cantidadProducto.value) || 0) < paso) {
+            cantidadProducto.value = paso;
+        }
+    }
+}
+
+if (presentacionSelect) {
+    presentacionSelect.addEventListener('change', sincronizarPresentacion);
+    sincronizarPresentacion();
 }
 
 document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
@@ -32,7 +65,14 @@ document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
                 'Accept': 'application/json',
             },
-            body: JSON.stringify({ item_type: itemType, item_id: itemId }),
+            body: JSON.stringify({
+                item_type: itemType,
+                item_id: itemId,
+                producto_presentacion_id: itemType === 'producto' ? (presentacionSelect?.value || null) : null,
+                cantidad: itemType === 'producto'
+                    ? (parseFloat(cantidadProducto?.value) || 1)
+                    : 1,
+            }),
         })
         .then(r => r.json())
         .then(d => {
@@ -59,9 +99,10 @@ if (cartPage) {
         btn.addEventListener('click', function () {
             const container = this.closest('.cart-item');
             const qtyEl = container.querySelector('.qty-value');
-            let qty = parseInt(qtyEl.textContent);
-            if (qty > 1) {
-                updateQuantity(container, qty - 1);
+            const paso = parseFloat(container.dataset.paso) || 1;
+            let qty = parseFloat(qtyEl.textContent) || 0;
+            if (qty - paso >= paso) {
+                updateQuantity(container, qty - paso, paso);
             }
         });
     });
@@ -70,9 +111,10 @@ if (cartPage) {
         btn.addEventListener('click', function () {
             const container = this.closest('.cart-item');
             const qtyEl = container.querySelector('.qty-value');
-            let qty = parseInt(qtyEl.textContent);
-            if (qty < 99) {
-                updateQuantity(container, qty + 1);
+            const paso = parseFloat(container.dataset.paso) || 1;
+            let qty = parseFloat(qtyEl.textContent) || 0;
+            if (qty + paso <= 99) {
+                updateQuantity(container, qty + paso, paso);
             }
         });
     });
@@ -106,7 +148,7 @@ if (cartPage) {
     });
 }
 
-function updateQuantity(container, newQty) {
+function updateQuantity(container, newQty, paso = 1) {
     const itemId = container.dataset.itemId;
     const qtyEl = container.querySelector('.qty-value');
     const subtotalEl = container.querySelector('.item-subtotal');
@@ -124,9 +166,9 @@ function updateQuantity(container, newQty) {
     .then(r => r.json())
     .then(d => {
         if (d.success) {
-            qtyEl.textContent = newQty;
+            qtyEl.textContent = Number.isInteger(newQty) ? String(newQty) : String(parseFloat(newQty.toFixed(3)));
             subtotalEl.textContent = 'S/ ' + d.subtotal;
-            minusBtn.disabled = newQty <= 1;
+            minusBtn.disabled = newQty - paso < paso;
             updateCartTotal(d.total);
             updateBadge(d.count);
         }

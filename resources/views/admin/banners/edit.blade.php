@@ -1,4 +1,4 @@
-<form action="{{ route('admin.banners.update', $banner) }}" method="POST" class="p-6" enctype="multipart/form-data">
+<form data-modal-size="md" action="{{ route('admin.banners.update', $banner) }}" method="POST" class="p-6" enctype="multipart/form-data">
     @csrf
     @method('PUT')
     <div class="flex items-center justify-between mb-6">

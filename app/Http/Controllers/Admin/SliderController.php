@@ -18,7 +18,7 @@ class SliderController extends Controller
             return view('admin.sliders.index');
         }
 
-        return view('admin.sliders.index');
+        return view('admin.sliders.full');
     }
 
     public function listar(string $tipo)
@@ -26,7 +26,8 @@ class SliderController extends Controller
         $items = SliderProducto::where('slider_tipo', $tipo)
             ->orderBy('orden')
             ->with('producto.categoria')
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.sliders._lista', compact('items', 'tipo'));
     }
@@ -47,9 +48,9 @@ class SliderController extends Controller
         $maxOrden = SliderProducto::where('slider_tipo', $tipo)->max('orden') ?? 0;
 
         SliderProducto::create([
-            'slider_tipo'          => $tipo,
+            'slider_tipo' => $tipo,
             'producto_id_producto' => $request->producto_id,
-            'orden'                => $maxOrden + 1,
+            'orden' => $maxOrden + 1,
         ]);
 
         $this->auditar('sliders', 'crear', $request->producto_id, "Asignó producto #{$request->producto_id} al slider '{$tipo}'");
@@ -71,10 +72,10 @@ class SliderController extends Controller
     public function reordenar(string $tipo)
     {
         $items = request()->validate([
-            'items'    => 'required|array',
-            'items.*'  => 'required|array',
+            'items' => 'required|array',
+            'items.*' => 'required|array',
             'items.*.producto_id' => 'required|integer|exists:producto,id_producto',
-            'items.*.orden'       => 'required|integer|min:0',
+            'items.*.orden' => 'required|integer|min:0',
         ]);
 
         foreach ($items['items'] as $item) {
@@ -95,12 +96,12 @@ class SliderController extends Controller
             ->with('categoria')
             ->limit(20)
             ->get()
-            ->map(fn($p) => [
-                'id_producto'  => $p->id_producto,
-                'nombre'       => $p->nombre,
+            ->map(fn ($p) => [
+                'id_producto' => $p->id_producto,
+                'nombre' => $p->nombre,
                 'precio_venta' => $p->precio_venta,
-                'foto_url'     => $p->foto_url,
-                'categoria'    => $p->categoria?->nombre,
+                'foto_url' => $p->foto_url,
+                'categoria' => $p->categoria?->nombre,
             ]);
 
         return response()->json($productos);

@@ -1,4 +1,4 @@
-<form action="{{ route('admin.atenciones.store') }}" method="POST" class="p-6">
+<form data-modal-size="3xl" action="{{ route('admin.atenciones.store') }}" method="POST" class="p-6">
     @csrf
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-lg font-bold text-stone-800">Nueva atención</h2>
@@ -41,20 +41,29 @@
         <template id="producto-template">
             <div class="producto-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
                 <div class="sm:col-span-5">
-                    <label class="block text-xs font-medium text-stone-600 mb-1">Producto</label>
-                    <select name="productos[0][producto_id_producto]" required
+                    <label class="block text-xs font-medium text-stone-600 mb-1">Producto / presentación</label>
+                    <select name="productos[0][producto_presentacion_id]" required
                         class="producto-select w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
                         <option value="">Seleccione</option>
-                        @foreach ($productos as $p)
-                            <option value="{{ $p->id_producto }}" data-precio="{{ $p->precio_venta }}" data-stock="{{ $p->stock }}">
-                                {{ $p->nombre }} — S/ {{ number_format($p->precio_venta, 2) }} (Stock: {{ $p->stock }})
+                        @foreach ($presentaciones as $pp)
+                            @php($resumen = $pp->producto->resumenInventario())
+                            <option value="{{ $pp->id_producto_presentacion }}"
+                                data-precio="{{ number_format((float) $pp->precio_venta, 2, '.', '') }}"
+                                data-stock="{{ $pp->producto->stock_formateado }}"
+                                data-stock-vendible="{{ $resumen['stock_vendible_formateado'] }}"
+                                data-stock-minimo="{{ $resumen['stock_minimo_formateado'] }}"
+                                data-alerta="{{ $resumen['alerta_stock'] ?? '' }}"
+                                data-factor="{{ \App\Helpers\CantidadHelper::formatear($pp->factor) }}"
+                                data-paso="{{ \App\Helpers\CantidadHelper::formatear($pp->paso) }}">
+                                {{ $pp->producto->nombre }} — {{ $pp->nombre_completo }} — S/ {{ number_format($pp->precio_venta, 2) }} (Vendible: {{ $resumen['stock_vendible_formateado'] }}{{ $resumen['alerta_stock'] ? ' · '.$resumen['alerta_stock'] : '' }})
                             </option>
                         @endforeach
                     </select>
+                    <p class="producto-advertencia text-[11px] text-amber-600 mt-1 hidden"></p>
                 </div>
                 <div class="sm:col-span-2">
                     <label class="block text-xs font-medium text-stone-600 mb-1">Cantidad</label>
-                    <input type="number" name="productos[0][cantidad]" min="1" value="1" required
+                    <input type="number" name="productos[0][cantidad]" min="0.001" step="1" value="1" required
                         class="producto-cantidad w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
                 </div>
                 <div class="sm:col-span-3">
@@ -91,7 +100,7 @@
                         class="servicio-select w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
                         <option value="">Seleccione</option>
                         @foreach ($servicios as $s)
-                            <option value="{{ $s->id_servicio }}" data-precio="{{ $s->precio }}">
+                            <option value="{{ $s->id_servicio }}" data-precio="{{ number_format((float) $s->precio, 2, '.', '') }}">
                                 {{ $s->nombre }} — S/ {{ number_format($s->precio, 2) }}
                             </option>
                         @endforeach
@@ -118,6 +127,8 @@
         <span class="text-sm font-medium text-stone-600">Total:</span>
         <span id="total-atencion" class="text-xl font-bold text-emerald-700">S/ 0.00</span>
     </div>
+
+    @include('admin.partials.pagos-form', ['metodosPago' => $metodosPago, 'totalSource' => '#total-atencion'])
 
     <div class="flex justify-end gap-3 pt-4 border-t border-stone-200">
         <button type="button" data-close-modal

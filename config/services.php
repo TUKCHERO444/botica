@@ -39,14 +39,17 @@ return [
         'phone' => env('WHATSAPP_PHONE_NUMBER'),
     ],
 
-    'reniec' => [
-        'token' => env('RENIEC_API_TOKEN'),
-        'url' => env('RENIEC_API_URL', 'https://api.decolecta.com/v1/reniec/dni'),
-    ],
-
-    'sunat' => [
-        'token' => env('SUNAT_API_TOKEN', env('RENIEC_API_TOKEN')),
-        'url' => env('SUNAT_API_URL', 'https://api.decolecta.com/v1/sunat/ruc'),
+    /*
+    | Consultas DNI y RUC en json.pe. Las APIs externas solo se consumen
+    | desde peticiones HTTP de la aplicación; `ApiExternaGuard` bloquea su
+    | uso en migraciones y seeders. Ver docs/integracion-jsonpe.md.
+    */
+    'jsonpe' => [
+        'token' => env('JSONPE_API_TOKEN'),
+        'url' => env('JSONPE_API_URL', 'https://api.json.pe/api'),
+        'timeout' => (int) env('JSONPE_API_TIMEOUT', 8),
+        'cache_minutos' => (int) env('JSONPE_CACHE_MINUTOS', 60),
+        'cache_negativo_minutos' => (int) env('JSONPE_CACHE_NEGATIVO_MINUTOS', 10),
     ],
 
 ];

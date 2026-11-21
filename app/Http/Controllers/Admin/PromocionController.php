@@ -7,10 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StorePromocionRequest;
 use App\Http\Requests\Admin\UpdatePromocionRequest;
 use App\Models\Categoria;
+use App\Models\Combo;
 use App\Models\Marca;
 use App\Models\Producto;
 use App\Models\Promocion;
-use App\Models\Combo;
 use App\Services\CloudinaryService;
 
 class PromocionController extends Controller
@@ -23,7 +23,7 @@ class PromocionController extends Controller
 
     public function index()
     {
-        $promociones = Promocion::orderBy('orden')->with('combo')->get();
+        $promociones = Promocion::orderBy('orden')->with('combo')->paginate(10)->withQueryString();
 
         if (request()->ajax()) {
             return view('admin.promociones.index', compact('promociones'));
@@ -36,6 +36,7 @@ class PromocionController extends Controller
     {
         if (request()->ajax()) {
             $combos = Combo::where('activo', true)->orderBy('nombre')->get(['id_combo', 'nombre', 'precio_sugerido']);
+
             return view('admin.promociones.create', compact('combos'));
         }
 
@@ -71,6 +72,7 @@ class PromocionController extends Controller
         if (request()->ajax()) {
             $promocion->load('combo');
             $combos = Combo::where('activo', true)->orderBy('nombre')->get(['id_combo', 'nombre', 'precio_sugerido']);
+
             return view('admin.promociones.edit', compact('promocion', 'combos'));
         }
 
@@ -83,7 +85,7 @@ class PromocionController extends Controller
 
         if ($request->hasFile('imagen')) {
             $publicId = $promocion->public_id
-                ?? $this->cloudinary->getFolder('promociones') . '/' . $this->cloudinary->getPublicIdFromUrl($promocion->imagen_url);
+                ?? $this->cloudinary->getFolder('promociones').'/'.$this->cloudinary->getPublicIdFromUrl($promocion->imagen_url);
 
             $this->cloudinary->delete($publicId);
 
@@ -112,7 +114,7 @@ class PromocionController extends Controller
     public function destroy(Promocion $promocion)
     {
         $publicId = $promocion->public_id
-            ?? $this->cloudinary->getFolder('promociones') . '/' . $this->cloudinary->getPublicIdFromUrl($promocion->imagen_url);
+            ?? $this->cloudinary->getFolder('promociones').'/'.$this->cloudinary->getPublicIdFromUrl($promocion->imagen_url);
 
         $this->cloudinary->delete($publicId);
 
@@ -133,7 +135,7 @@ class PromocionController extends Controller
     public function reordenar()
     {
         $data = request()->validate([
-            'items'   => 'required|array',
+            'items' => 'required|array',
             'items.*' => 'required|integer|exists:promocion,id_promocion',
         ]);
 
@@ -157,24 +159,24 @@ class PromocionController extends Controller
                 ->where('nombre', 'like', "%{$q}%")
                 ->limit(20)
                 ->get()
-                ->map(fn($p) => [
-                    'id'   => $p->id_producto,
+                ->map(fn ($p) => [
+                    'id' => $p->id_producto,
                     'text' => "{$p->nombre} — S/ {$p->precio_venta}",
                 ]),
             'categoria' => Categoria::where('estado', 1)
                 ->where('nombre', 'like', "%{$q}%")
                 ->limit(20)
                 ->get()
-                ->map(fn($c) => [
-                    'id'   => $c->id_categoria,
+                ->map(fn ($c) => [
+                    'id' => $c->id_categoria,
                     'text' => $c->nombre,
                 ]),
             'marca' => Marca::where('estado', 1)
                 ->where('nombre', 'like', "%{$q}%")
                 ->limit(20)
                 ->get()
-                ->map(fn($m) => [
-                    'id'   => $m->id_marca,
+                ->map(fn ($m) => [
+                    'id' => $m->id_marca,
                     'text' => $m->nombre,
                 ]),
             default => collect(),

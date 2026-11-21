@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 
 class MarcaController extends Controller
 {
-    use CacheaPanel, Audita;
+    use Audita, CacheaPanel;
 
     public function index()
     {
@@ -26,28 +26,30 @@ class MarcaController extends Controller
 
         if (request()->ajax()) {
             return $this->getIndex('marcas', function () use ($query, $search) {
-                $marcas = $query->get();
+                $marcas = $query->paginate(10)->withQueryString();
+
                 return view('admin.marcas.index', compact('marcas', 'search'))->render();
             });
         }
 
-        $marcas = $query->get();
+        $marcas = $query->paginate(10)->withQueryString();
+
         return view('admin.marcas.full', compact('marcas', 'search'));
     }
 
     public function search(Request $request)
     {
         $q = $request->get('q');
-        if (!$q || strlen(trim($q)) < 2) {
+        if (! $q || strlen(trim($q)) < 2) {
             return response()->json([]);
         }
 
         $results = Marca::where('nombre', 'like', "%{$q}%")
             ->limit(10)
             ->get()
-            ->map(fn($m) => [
-                'id'       => $m->id_marca,
-                'nombre'   => $m->nombre,
+            ->map(fn ($m) => [
+                'id' => $m->id_marca,
+                'nombre' => $m->nombre,
                 'edit_url' => route('admin.marcas.edit', $m),
             ]);
 

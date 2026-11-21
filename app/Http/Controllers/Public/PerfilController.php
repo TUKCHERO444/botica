@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Public;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Public\PerfilInfoRequest;
 use App\Http\Requests\Public\PerfilPasswordRequest;
+use App\Models\Atencion;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
@@ -17,7 +18,9 @@ class PerfilController extends Controller
                 $q->latest()->limit(10);
             },
             'atenciones' => function ($q) {
-                $q->latest()->limit(10);
+                $q->where('estado', Atencion::ESTADO_CONFIRMADA)
+                    ->latest()
+                    ->limit(10);
             },
         ]);
 
@@ -38,7 +41,7 @@ class PerfilController extends Controller
     {
         $cliente = Auth::guard('clientes')->user();
 
-        if (!Hash::check($request->current_password, $cliente->password)) {
+        if (! Hash::check($request->current_password, $cliente->password)) {
             return back()->withErrors([
                 'current_password' => 'La contraseña actual no es correcta.',
             ]);

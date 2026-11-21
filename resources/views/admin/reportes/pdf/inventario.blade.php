@@ -26,7 +26,8 @@
 <body>
     <div class="header">
         <h1>{{ $titulo }}</h1>
-        <p>Emitido: {{ now()->format('d/m/Y H:i') }}</p>
+        @include('admin.reportes.pdf.partials.negocio')
+        <p>{{ $solo_activos ? 'Solo productos activos' : 'Incluye productos inactivos' }} | Emitido: {{ now()->format('d/m/Y H:i') }}</p>
     </div>
 
     <div class="summary">
@@ -35,12 +36,16 @@
             <div class="value">{{ $cantidad }}</div>
         </div>
         <div class="summary-card">
-            <div class="label">Stock Total</div>
-            <div class="value">{{ number_format($total_stock) }}</div>
+            <div class="label">Valor a costo real</div>
+            <div class="value">S/ {{ number_format((float) $total_valorizado, 2) }}</div>
         </div>
         <div class="summary-card">
-            <div class="label">Valorizado Total</div>
-            <div class="value">S/ {{ number_format($total_valorizado, 2) }}</div>
+            <div class="label">Valor a precio compra</div>
+            <div class="value">S/ {{ number_format((float) $total_valor_compra, 2) }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Diferencia</div>
+            <div class="value">S/ {{ number_format((float) $total_valor_compra - (float) $total_valorizado, 2) }}</div>
         </div>
     </div>
 
@@ -52,28 +57,31 @@
                 <th>Categoría</th>
                 <th>Marca</th>
                 <th class="text-right">Stock Actual</th>
-                <th class="text-right">Inventario Inicial</th>
-                <th class="text-right">Precio Compra</th>
+                <th class="text-right">Costo real prom.</th>
+                <th class="text-right">Valor a costo</th>
+                <th class="text-right">Valor a compra</th>
                 <th class="text-right">Precio Venta</th>
-                <th class="text-right">Valorizado</th>
             </tr>
         </thead>
         <tbody>
             @forelse ($productos as $i => $p)
-            @php $bajo = $p->stock <= 5; @endphp
+            @php $bajo = $p->stock <= $p->stock_minimo; @endphp
+            @php
+                $costoPromedio = (float) $p->stock > 0 ? (float) $p->valor_costo / (float) $p->stock : 0;
+            @endphp
             <tr>
                 <td>{{ $i + 1 }}</td>
                 <td class="{{ $bajo ? 'low-stock' : '' }}">{{ $p->nombre }}</td>
                 <td>{{ $p->categoria?->nombre ?? '-' }}</td>
                 <td>{{ $p->marca?->nombre ?? '-' }}</td>
-                <td class="text-right {{ $bajo ? 'low-stock' : '' }}">{{ $p->stock }}</td>
-                <td class="text-right">{{ $p->inventario }}</td>
-                <td class="text-right">S/ {{ number_format($p->precio_compra, 2) }}</td>
+                <td class="text-right {{ $bajo ? 'low-stock' : '' }}">{{ \App\Helpers\CantidadHelper::formatear($p->stock) }} {{ $p->unidadBase?->codigo }}</td>
+                <td class="text-right">S/ {{ number_format($costoPromedio, 2) }}</td>
+                <td class="text-right">S/ {{ number_format((float) $p->valor_costo, 2) }}</td>
+                <td class="text-right">S/ {{ number_format((float) $p->stock * (float) $p->precio_compra, 2) }}</td>
                 <td class="text-right">S/ {{ number_format($p->precio_venta, 2) }}</td>
-                <td class="text-right">S/ {{ number_format($p->stock * $p->precio_compra, 2) }}</td>
             </tr>
             @empty
-            <tr><td colspan="9" class="text-center" style="color:#999;">No hay productos registrados.</td></tr>
+            <tr><td colspan="8" class="text-center" style="color:#999;">No hay productos registrados.</td></tr>
             @endforelse
         </tbody>
         <tfoot>
@@ -81,15 +89,16 @@
                 <td colspan="4" class="text-right">Totales</td>
                 <td class="text-right">{{ number_format($total_stock) }}</td>
                 <td></td>
+                <td class="text-right">S/ {{ number_format((float) $total_valorizado, 2) }}</td>
+                <td class="text-right">S/ {{ number_format((float) $total_valor_compra, 2) }}</td>
                 <td></td>
-                <td></td>
-                <td class="text-right">S/ {{ number_format($total_valorizado, 2) }}</td>
             </tr>
         </tfoot>
     </table>
 
     <div class="footer">
-        Página {PAGE_NUM} de {PAGE_COUNT} | Generado por {{ auth()->user()?->name ?? 'Sistema' }}
+        Generado por {{ auth()->user()?->name ?? 'Sistema' }}
     </div>
+@include('admin.reportes.pdf.partials.paginacion')
 </body>
 </html>

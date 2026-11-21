@@ -16,9 +16,9 @@
                         <th class="px-4 py-3 font-medium">Apertura</th>
                         <th class="px-4 py-3 font-medium">Cierre</th>
                         <th class="px-4 py-3 font-medium">Inicial</th>
-                        <th class="px-4 py-3 font-medium">Ingresos</th>
-                        <th class="px-4 py-3 font-medium">Egresos</th>
-                        <th class="px-4 py-3 font-medium">Final</th>
+                        <th class="px-4 py-3 font-medium">Esperado</th>
+                        <th class="px-4 py-3 font-medium">Contado</th>
+                        <th class="px-4 py-3 font-medium">Diferencia</th>
                         <th class="hidden sm:table-cell px-4 py-3 font-medium">Abrió</th>
                         <th class="hidden sm:table-cell px-4 py-3 font-medium">Cerró</th>
                         <th class="px-4 py-3 font-medium text-right">Acción</th>
@@ -31,9 +31,21 @@
                             <td class="px-4 py-3 text-stone-700 whitespace-nowrap">{{ $c->apertura_at->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3 text-stone-700 whitespace-nowrap">{{ $c->cierre_at?->format('d/m/Y H:i') ?? '—' }}</td>
                             <td class="px-4 py-3 text-stone-600">S/ {{ number_format($c->monto_inicial, 2) }}</td>
-                            <td class="px-4 py-3 text-emerald-600 font-medium">S/ {{ number_format($c->total_ingresos, 2) }}</td>
-                            <td class="px-4 py-3 text-red-600 font-medium">S/ {{ number_format($c->total_egresos, 2) }}</td>
-                            <td class="px-4 py-3 font-bold text-stone-800">S/ {{ number_format($c->monto_final, 2) }}</td>
+                            <td class="px-4 py-3 text-stone-600">
+                                {{ $c->efectivo_esperado === null ? '—' : 'S/ ' . number_format((float) $c->efectivo_esperado, 2) }}
+                            </td>
+                            <td class="px-4 py-3 font-medium text-stone-800">
+                                {{ $c->efectivo_contado === null ? '—' : 'S/ ' . number_format((float) $c->efectivo_contado, 2) }}
+                            </td>
+                            <td class="px-4 py-3 font-medium">
+                                @if ($c->efectivo_contado === null)
+                                    <span class="text-stone-400 text-xs">Sin arqueo</span>
+                                @else
+                                    <span class="{{ (float) $c->diferencia === 0.0 ? 'text-emerald-600' : 'text-red-600' }}">
+                                        S/ {{ number_format($c->diferencia_real, 2) }}
+                                    </span>
+                                @endif
+                            </td>
                             <td class="hidden sm:table-cell px-4 py-3 text-stone-500">{{ $c->aperturaUser?->name ?? '—' }}</td>
                             <td class="hidden sm:table-cell px-4 py-3 text-stone-500">{{ $c->cierreUser?->name ?? '—' }}</td>
                             <td class="px-4 py-3 text-right">
@@ -48,6 +60,8 @@
                 </tbody>
             </table>
         </div>
+
+        @include('admin.partials.pagination', ['items' => $cajas])
     </div>
 @else
     <div class="bg-white rounded-xl shadow-sm border border-stone-200 p-8 text-center">

@@ -96,3 +96,6 @@
 </div>
 
 @vite('resources/js/admin/promociones/index.js')
+
+
+@include('admin.partials.pagination', ['items' => $promociones])

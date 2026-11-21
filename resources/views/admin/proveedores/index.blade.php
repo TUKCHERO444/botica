@@ -60,3 +60,6 @@
         </table>
     </div>
 </div>
+
+
+@include('admin.partials.pagination', ['items' => $proveedores])

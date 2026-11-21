@@ -20,7 +20,7 @@ class ComboController extends Controller
 
     public function index()
     {
-        $combos = Combo::withCount('productos')->orderBy('nombre')->get();
+        $combos = Combo::withCount('productos')->orderBy('nombre')->paginate(10)->withQueryString();
 
         if (request()->ajax()) {
             return view('admin.combos.index', compact('combos'));
@@ -53,7 +53,7 @@ class ComboController extends Controller
         $combo = Combo::create($data);
 
         $productos = collect($request->input('productos', []))
-            ->mapWithKeys(fn($p) => [$p['id'] => ['cantidad' => $p['cantidad']]]);
+            ->mapWithKeys(fn ($p) => [$p['id'] => ['cantidad' => $p['cantidad']]]);
 
         $combo->productos()->sync($productos);
 
@@ -74,6 +74,7 @@ class ComboController extends Controller
     {
         if (request()->ajax()) {
             $combo->load('productos');
+
             return view('admin.combos.edit', compact('combo'));
         }
 
@@ -86,7 +87,7 @@ class ComboController extends Controller
 
         if ($request->hasFile('imagen')) {
             $publicId = $combo->public_id
-                ?? $this->cloudinary->getFolder('combos') . '/' . $this->cloudinary->getPublicIdFromUrl($combo->imagen_url);
+                ?? $this->cloudinary->getFolder('combos').'/'.$this->cloudinary->getPublicIdFromUrl($combo->imagen_url);
 
             $this->cloudinary->delete($publicId);
 
@@ -100,7 +101,7 @@ class ComboController extends Controller
         $combo->update($data);
 
         $productos = collect($request->input('productos', []))
-            ->mapWithKeys(fn($p) => [$p['id'] => ['cantidad' => $p['cantidad']]]);
+            ->mapWithKeys(fn ($p) => [$p['id'] => ['cantidad' => $p['cantidad']]]);
 
         $combo->productos()->sync($productos);
 
@@ -121,7 +122,7 @@ class ComboController extends Controller
     {
         if ($combo->imagen_url) {
             $publicId = $combo->public_id
-                ?? $this->cloudinary->getFolder('combos') . '/' . $this->cloudinary->getPublicIdFromUrl($combo->imagen_url);
+                ?? $this->cloudinary->getFolder('combos').'/'.$this->cloudinary->getPublicIdFromUrl($combo->imagen_url);
 
             $this->cloudinary->delete($publicId);
         }
@@ -150,11 +151,11 @@ class ComboController extends Controller
             ->where('nombre', 'like', "%{$q}%")
             ->limit(20)
             ->get()
-            ->map(fn($p) => [
+            ->map(fn ($p) => [
                 'id_producto' => $p->id_producto,
-                'nombre'      => $p->nombre,
+                'nombre' => $p->nombre,
                 'precio_venta' => $p->precio_venta,
-                'foto_url'    => $p->foto_url,
+                'foto_url' => $p->foto_url,
             ]);
 
         return response()->json($productos);
@@ -168,9 +169,9 @@ class ComboController extends Controller
             ->where('nombre', 'like', "%{$q}%")
             ->limit(20)
             ->get()
-            ->map(fn($c) => [
+            ->map(fn ($c) => [
                 'id_combo' => $c->id_combo,
-                'nombre'   => $c->nombre,
+                'nombre' => $c->nombre,
                 'precio_sugerido' => $c->precio_sugerido,
             ]);
 

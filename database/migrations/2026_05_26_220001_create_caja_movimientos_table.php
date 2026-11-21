@@ -14,7 +14,7 @@ return new class extends Migration
             $table->enum('tipo', ['ingreso', 'egreso']);
             $table->decimal('monto', 10, 2);
             $table->text('descripcion')->nullable();
-            $table->enum('referencia_tipo', ['venta', 'atencion', 'egreso_manual']);
+            $table->enum('referencia_tipo', ['venta', 'atencion', 'egreso_manual', 'compra', 'devolucion_compra']);
             $table->integer('referencia_id')->nullable();
             $table->foreignId('user_id')->constrained('users');
             $table->timestamp('created_at')->useCurrent();

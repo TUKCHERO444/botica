@@ -66,3 +66,6 @@
 </div>
 
 @vite('resources/js/admin/banners/index.js')
+
+
+@include('admin.partials.pagination', ['items' => $banners])

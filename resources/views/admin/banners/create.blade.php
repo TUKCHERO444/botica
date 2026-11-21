@@ -1,4 +1,4 @@
-<form action="{{ route('admin.banners.store') }}" method="POST" class="p-6" enctype="multipart/form-data">
+<form data-modal-size="md" action="{{ route('admin.banners.store') }}" method="POST" class="p-6" enctype="multipart/form-data">
     @csrf
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-bold text-stone-800">Nuevo banner</h2>

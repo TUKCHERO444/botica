@@ -1,4 +1,4 @@
-<form action="{{ route('admin.combos.update', $combo) }}" method="POST" class="p-6" enctype="multipart/form-data">
+<form data-modal-size="2xl" action="{{ route('admin.combos.update', $combo) }}" method="POST" class="p-6" enctype="multipart/form-data">
     @csrf
     @method('PUT')
     <div class="flex items-center justify-between mb-6">
@@ -52,7 +52,7 @@
                         <img src="{{ $producto->foto_url }}" alt="" class="w-10 h-10 object-cover rounded">
                         <span class="flex-1 text-sm text-stone-700">{{ $producto->nombre }}</span>
                         <span class="text-xs text-stone-400">S/ {{ number_format($producto->precio_venta, 2) }}</span>
-                        <input type="number" name="productos[{{ $loop->index }}][cantidad]" value="{{ $producto->pivot->cantidad }}" min="1"
+                        <input type="number" name="productos[{{ $loop->index }}][cantidad]" value="{{ \App\Helpers\CantidadHelper::formatear($producto->pivot->cantidad) }}" min="1"
                             class="producto-cantidad w-16 text-center rounded border border-stone-300 px-1 py-1 text-xs">
                         <span class="producto-subtotal text-xs text-stone-500">S/ {{ number_format($producto->precio_venta * $producto->pivot->cantidad, 2) }}</span>
                         <button type="button" class="btn-quitar-producto text-red-500 hover:text-red-700 text-xs font-medium">Quitar</button>

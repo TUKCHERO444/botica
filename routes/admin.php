@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AjusteInventarioController;
 use App\Http\Controllers\Admin\AtencionController;
 use App\Http\Controllers\Admin\AuditoriaController;
 use App\Http\Controllers\Admin\BannerController;
@@ -7,12 +8,18 @@ use App\Http\Controllers\Admin\CajaController;
 use App\Http\Controllers\Admin\CategoriaController;
 use App\Http\Controllers\Admin\ClienteController;
 use App\Http\Controllers\Admin\ComboController;
+use App\Http\Controllers\Admin\ConciliacionInventarioController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DevolucionProveedorController;
 use App\Http\Controllers\Admin\HeaderTextController;
 use App\Http\Controllers\Admin\IngresoController;
+use App\Http\Controllers\Admin\InventarioInicialController;
 use App\Http\Controllers\Admin\KardexController;
+use App\Http\Controllers\Admin\LoteController;
 use App\Http\Controllers\Admin\MarcaController;
+use App\Http\Controllers\Admin\MetodoPagoController;
 use App\Http\Controllers\Admin\PortadaCategoriaController;
+use App\Http\Controllers\Admin\PresentacionController;
 use App\Http\Controllers\Admin\ProductoController;
 use App\Http\Controllers\Admin\PromocionController;
 use App\Http\Controllers\Admin\ProveedorController;
@@ -22,6 +29,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\ServicioController;
 use App\Http\Controllers\Admin\SliderController;
 use App\Http\Controllers\Admin\SunatController;
+use App\Http\Controllers\Admin\UnidadMedidaController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VentaController;
 use Illuminate\Support\Facades\Route;
@@ -32,10 +40,13 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         ->name('admin.dashboard');
 
     Route::get('/clientes/search', [ClienteController::class, 'search'])
-        ->middleware('permission:clientes')
+        ->middleware('permission:clientes|ventas|atenciones')
         ->name('admin.clientes.search');
+    Route::post('/clientes/verificar-dni', [ClienteController::class, 'verificarDni'])
+        ->middleware('permission:clientes|ventas|atenciones')
+        ->name('admin.clientes.verificarDni');
     Route::post('/clientes/generico', [ClienteController::class, 'generico'])
-        ->middleware('permission:clientes')
+        ->middleware('permission:clientes|ventas|atenciones')
         ->name('admin.clientes.generico');
 
     Route::get('categorias/search', [CategoriaController::class, 'search'])
@@ -62,8 +73,37 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         'update' => 'admin.marcas.update', 'destroy' => 'admin.marcas.destroy',
     ])->except(['show'])->middleware('permission:marcas');
 
+    Route::resource('unidades-medida', UnidadMedidaController::class)
+        ->names([
+            'index' => 'admin.unidades-medida.index',
+            'create' => 'admin.unidades-medida.create',
+            'store' => 'admin.unidades-medida.store',
+            'edit' => 'admin.unidades-medida.edit',
+            'update' => 'admin.unidades-medida.update',
+            'destroy' => 'admin.unidades-medida.destroy',
+        ])
+        ->parameters(['unidades-medida' => 'unidadMedida'])
+        ->except(['show'])
+        ->middleware('permission:unidades-medida');
+
+    Route::resource('presentaciones', PresentacionController::class)
+        ->names([
+            'index' => 'admin.presentaciones.index',
+            'create' => 'admin.presentaciones.create',
+            'store' => 'admin.presentaciones.store',
+            'edit' => 'admin.presentaciones.edit',
+            'update' => 'admin.presentaciones.update',
+            'destroy' => 'admin.presentaciones.destroy',
+        ])
+        ->parameters(['presentaciones' => 'presentacion'])
+        ->except(['show'])
+        ->middleware('permission:presentaciones');
+
     Route::patch('proveedores/{proveedor}/toggle-status', [ProveedorController::class, 'toggleStatus'])
         ->middleware('permission:proveedores')->name('admin.proveedores.toggleStatus');
+
+    Route::post('proveedores/verificar-ruc', [ProveedorController::class, 'verificarRuc'])
+        ->middleware('permission:proveedores')->name('admin.proveedores.verificarRuc');
 
     Route::resource('proveedores', ProveedorController::class)->names([
         'index' => 'admin.proveedores.index', 'create' => 'admin.proveedores.create',
@@ -72,7 +112,7 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     ])->middleware('permission:proveedores');
 
     Route::post('/reniec/consultar', [ReniecController::class, 'checkDni'])
-        ->middleware('permission:clientes')
+        ->middleware('permission:clientes|ventas|atenciones')
         ->name('admin.reniec.consultar');
 
     Route::post('/sunat/consultar', [SunatController::class, 'checkRuc'])
@@ -91,6 +131,22 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         'update' => 'admin.servicios.update', 'destroy' => 'admin.servicios.destroy',
     ])->middleware('permission:servicios');
 
+    Route::patch('metodos-pago/{metodoPago}/toggle-status', [MetodoPagoController::class, 'toggleStatus'])
+        ->middleware('permission:metodos-pago')->name('admin.metodos-pago.toggleStatus');
+
+    Route::resource('metodos-pago', MetodoPagoController::class)
+        ->parameters(['metodos-pago' => 'metodoPago'])
+        ->names([
+            'index' => 'admin.metodos-pago.index',
+            'create' => 'admin.metodos-pago.create',
+            'store' => 'admin.metodos-pago.store',
+            'edit' => 'admin.metodos-pago.edit',
+            'update' => 'admin.metodos-pago.update',
+            'destroy' => 'admin.metodos-pago.destroy',
+        ])
+        ->except(['show'])
+        ->middleware('permission:metodos-pago');
+
     Route::get('productos/search', [ProductoController::class, 'search'])
         ->middleware('permission:productos')->name('admin.productos.search');
 
@@ -103,12 +159,40 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         'update' => 'admin.productos.update', 'destroy' => 'admin.productos.destroy',
     ])->except(['show'])->middleware('permission:productos');
 
+    Route::get('ventas/presentaciones/search', [VentaController::class, 'searchPresentaciones'])
+        ->middleware('permission:ventas')
+        ->name('admin.ventas.presentaciones.search');
+
+    Route::get('ventas/{venta}/ticket', [VentaController::class, 'ticket'])
+        ->middleware('permission:ventas')
+        ->name('admin.ventas.ticket');
+
+    Route::get('ventas/{venta}/anular', [VentaController::class, 'formAnular'])
+        ->middleware('permission:ventas')
+        ->name('admin.ventas.formAnular');
+
+    Route::post('ventas/{venta}/anular', [VentaController::class, 'anular'])
+        ->middleware('permission:ventas')
+        ->name('admin.ventas.anular');
+
     Route::resource('ventas', VentaController::class)->names([
         'index' => 'admin.ventas.index', 'create' => 'admin.ventas.create',
         'store' => 'admin.ventas.store', 'show' => 'admin.ventas.show',
         'edit' => 'admin.ventas.edit', 'update' => 'admin.ventas.update',
         'destroy' => 'admin.ventas.destroy',
     ])->middleware('permission:ventas');
+
+    Route::get('atenciones/{atencione}/ticket', [AtencionController::class, 'ticket'])
+        ->middleware('permission:atenciones')
+        ->name('admin.atenciones.ticket');
+
+    Route::get('atenciones/{atencione}/anular', [AtencionController::class, 'formAnular'])
+        ->middleware('permission:atenciones')
+        ->name('admin.atenciones.formAnular');
+
+    Route::post('atenciones/{atencione}/anular', [AtencionController::class, 'anular'])
+        ->middleware('permission:atenciones')
+        ->name('admin.atenciones.anular');
 
     Route::resource('atenciones', AtencionController::class)->names([
         'index' => 'admin.atenciones.index', 'create' => 'admin.atenciones.create',
@@ -124,12 +208,89 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         'destroy' => 'admin.ingresos.destroy',
     ])->middleware('permission:ingresos');
 
+    Route::middleware('permission:ingresos')
+        ->prefix('ingresos')
+        ->name('admin.ingresos.')
+        ->group(function () {
+            Route::get('{ingreso}/recibir', [IngresoController::class, 'formRecibir'])->name('formRecibir');
+            Route::post('{ingreso}/recibir', [IngresoController::class, 'recibir'])->name('recibir');
+            Route::get('{ingreso}/anular', [IngresoController::class, 'formAnular'])->name('formAnular');
+            Route::post('{ingreso}/anular', [IngresoController::class, 'anular'])->name('anular');
+        });
+
+    Route::resource('devoluciones', DevolucionProveedorController::class)
+        ->only(['index', 'create', 'store', 'show'])
+        ->parameters(['devoluciones' => 'devolucion'])
+        ->names([
+            'index' => 'admin.devoluciones.index',
+            'create' => 'admin.devoluciones.create',
+            'store' => 'admin.devoluciones.store',
+            'show' => 'admin.devoluciones.show',
+        ])
+        ->middleware('permission:devoluciones');
+
+    Route::middleware('permission:devoluciones')
+        ->prefix('devoluciones')
+        ->name('admin.devoluciones.')
+        ->group(function () {
+            Route::get('{devolucion}/anular', [DevolucionProveedorController::class, 'formAnular'])->name('formAnular');
+            Route::post('{devolucion}/anular', [DevolucionProveedorController::class, 'anular'])->name('anular');
+        });
+
+    Route::resource('ajustes', AjusteInventarioController::class)
+        ->only(['index', 'create', 'store', 'show'])
+        ->names([
+            'index' => 'admin.ajustes.index',
+            'create' => 'admin.ajustes.create',
+            'store' => 'admin.ajustes.store',
+            'show' => 'admin.ajustes.show',
+        ])
+        ->middleware('permission:ajustes');
+
+    Route::middleware('permission:inventario-inicial')
+        ->prefix('inventario-inicial')
+        ->name('admin.inventario-inicial.')
+        ->group(function () {
+            Route::get('/', [InventarioInicialController::class, 'index'])->name('index');
+            Route::get('/create', [InventarioInicialController::class, 'create'])->name('create');
+            Route::get('/presentaciones/search', [InventarioInicialController::class, 'searchPresentaciones'])
+                ->name('presentaciones.search');
+            Route::post('/', [InventarioInicialController::class, 'store'])->name('store');
+            Route::get('/plantilla', [InventarioInicialController::class, 'plantilla'])->name('plantilla');
+            Route::get('/exportar-productos', [InventarioInicialController::class, 'exportarProductos'])
+                ->name('exportarProductos');
+            Route::post('/importar', [InventarioInicialController::class, 'importar'])->name('importar');
+            Route::get('/{inventario}/edit', [InventarioInicialController::class, 'edit'])->name('edit');
+            Route::put('/{inventario}', [InventarioInicialController::class, 'update'])->name('update');
+            Route::get('/{inventario}', [InventarioInicialController::class, 'show'])->name('show');
+            Route::post('/{inventario}/confirmar', [InventarioInicialController::class, 'confirmar'])
+                ->name('confirmar');
+            Route::delete('/{inventario}', [InventarioInicialController::class, 'destroy'])->name('destroy');
+        });
+
+    Route::middleware('permission:conciliaciones')
+        ->prefix('conciliaciones')
+        ->name('admin.conciliaciones.')
+        ->group(function () {
+            Route::get('/', [ConciliacionInventarioController::class, 'index'])->name('index');
+            Route::post('/ejecutar', [ConciliacionInventarioController::class, 'ejecutar'])->name('ejecutar');
+            Route::get('/{conciliacion}', [ConciliacionInventarioController::class, 'show'])->name('show');
+        });
+
     Route::middleware('permission:kardex')
         ->prefix('kardex')
         ->name('admin.kardex.')
         ->group(function () {
             Route::get('/', [KardexController::class, 'index'])->name('index');
             Route::get('/producto/{producto}', [KardexController::class, 'porProducto'])->name('producto');
+        });
+
+    Route::middleware('permission:lotes')
+        ->prefix('lotes')
+        ->name('admin.lotes.')
+        ->group(function () {
+            Route::get('/', [LoteController::class, 'index'])->name('index');
+            Route::delete('/{productoLote}', [LoteController::class, 'baja'])->name('baja');
         });
 
     Route::patch('usuarios/{usuario}/toggle-status', [UserController::class, 'toggleStatus'])
@@ -141,16 +302,22 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         'update' => 'admin.usuarios.update', 'destroy' => 'admin.usuarios.destroy',
     ])->middleware('permission:usuarios');
 
-    Route::prefix('caja')->name('admin.caja.')->group(function () {
-        Route::get('/', [CajaController::class, 'index'])->name('index');
-        Route::get('/apertura', [CajaController::class, 'formApertura'])->name('formApertura');
-        Route::post('/apertura', [CajaController::class, 'apertura'])->name('apertura');
-        Route::get('/egreso', [CajaController::class, 'formEgreso'])->name('formEgreso');
-        Route::post('/egreso', [CajaController::class, 'egreso'])->name('egreso');
-        Route::post('/cierre', [CajaController::class, 'cierre'])->name('cierre');
-        Route::get('/historial', [CajaController::class, 'historial'])->name('historial');
-        Route::get('/historial/{caja}', [CajaController::class, 'historialShow'])->name('historialShow');
-    })->middleware('permission:caja');
+    Route::middleware('permission:caja')
+        ->prefix('caja')
+        ->name('admin.caja.')
+        ->group(function () {
+            Route::get('/', [CajaController::class, 'index'])->name('index');
+            Route::get('/apertura', [CajaController::class, 'formApertura'])->name('formApertura');
+            Route::post('/apertura', [CajaController::class, 'apertura'])->name('apertura');
+            Route::get('/ingreso', [CajaController::class, 'formIngreso'])->name('formIngreso');
+            Route::post('/ingreso', [CajaController::class, 'ingreso'])->name('ingreso');
+            Route::get('/egreso', [CajaController::class, 'formEgreso'])->name('formEgreso');
+            Route::post('/egreso', [CajaController::class, 'egreso'])->name('egreso');
+            Route::get('/cierre', [CajaController::class, 'formCierre'])->name('formCierre');
+            Route::post('/cierre', [CajaController::class, 'cierre'])->name('cierre');
+            Route::get('/historial', [CajaController::class, 'historial'])->name('historial');
+            Route::get('/historial/{caja}', [CajaController::class, 'historialShow'])->name('historialShow');
+        });
 
     Route::middleware('permission:sliders')
         ->prefix('sliders')

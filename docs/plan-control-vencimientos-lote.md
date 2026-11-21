@@ -1,5 +1,7 @@
 # Plan de Implementación — Control de Vencimientos por Lote
 
+> **Documento histórico.** Describe una implementación anterior de lotes/vencimientos. La versión vigente y rediseñada está en [`plan-lotes-fefo-v2.md`](plan-lotes-fefo-v2.md). No usar este documento como especificación actual.
+
 ## 1. Objetivo
 
 Implementar un sistema de trazabilidad por lotes y control de fechas de vencimiento para productos farmacéuticos, permitiendo registrar el número de lote y fecha de vencimiento en cada ingreso de inventario, consumir stock bajo el principio FEFO (*First Expiry, First Out*), generar alertas visuales de próximos vencimientos, y mantener la capacidad de reversión completa en ventas y atenciones.

@@ -6,20 +6,27 @@ use App\Models\Categoria;
 use App\Models\Marca;
 use App\Models\Producto;
 use App\Models\ProductoImagen;
+use App\Models\UnidadMedida;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
+use Tests\Concerns\CreaProductoConUnidad;
 use Tests\TestCase;
 
 class ProductoMultiImagenTest extends TestCase
 {
+    use CreaProductoConUnidad;
     use RefreshDatabase;
 
     private Categoria $categoria;
+
     private Marca $marca;
+
+    private UnidadMedida $unidad;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->unidad = $this->crearUnidadBase();
 
         $this->categoria = Categoria::create([
             'nombre' => 'Medicamentos',
@@ -38,7 +45,7 @@ class ProductoMultiImagenTest extends TestCase
 
     private function createProducto(array $overrides = []): Producto
     {
-        return Producto::create(array_merge([
+        $producto = Producto::create(array_merge([
             'nombre' => 'Producto Test',
             'descripcion' => 'Descripción test',
             'precio_compra' => 10.00,
@@ -46,9 +53,15 @@ class ProductoMultiImagenTest extends TestCase
             'estado' => 1,
             'inventario' => 50,
             'stock' => 20,
+            'stock_minimo' => 5,
+            'unidad_base_id' => $this->unidad->id_unidad_medida,
             'categoria_id_categoria' => $this->categoria->id_categoria,
             'marca_id_marca' => $this->marca->id_marca,
         ], $overrides));
+
+        $this->crearPresentacionBase($producto, $this->unidad);
+
+        return $producto;
     }
 
     private function crearImagen(Producto $producto, string $url, int $orden = 0): ProductoImagen

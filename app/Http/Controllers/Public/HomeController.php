@@ -16,7 +16,7 @@ class HomeController extends Controller
         $categoriasPortada = PortadaCategoria::orderBy('orden')
             ->with('categoria')
             ->get()
-            ->map(fn($pc) => $pc->categoria)
+            ->map(fn ($pc) => $pc->categoria)
             ->filter()
             ->values();
 
@@ -28,14 +28,15 @@ class HomeController extends Controller
             ->get()
             ->map(function ($p) {
                 $p->enlace_resuelto = $this->resolverEnlace($p);
+
                 return $p;
             });
 
         $sliders = SliderProducto::all()->groupBy('slider_tipo');
 
-        $destacados  = $this->productosDeSlider($sliders, 'buscados');
+        $destacados = $this->productosDeSlider($sliders, 'buscados');
         $masVendidos = $this->productosDeSlider($sliders, 'vendidos');
-        $descuentos  = $this->productosDeSlider($sliders, 'descuentos');
+        $descuentos = $this->productosDeSlider($sliders, 'descuentos');
 
         return view('welcome', compact('categoriasPortada', 'banners', 'promociones', 'destacados', 'masVendidos', 'descuentos'));
     }
@@ -44,27 +45,28 @@ class HomeController extends Controller
     {
         return match ($p->tipo_promocion) {
             'descuento' => match ($p->ambito) {
-                'producto'  => route('public.productos.show', $p->ambito_id),
+                'producto' => route('public.productos.show', $p->ambito_id),
                 'categoria' => route('public.productos.index', ['categorias[]' => $p->ambito_id]),
-                'marca'     => route('public.productos.index', ['marcas[]' => $p->ambito_id]),
-                default     => $p->enlace,
+                'marca' => route('public.productos.index', ['marcas[]' => $p->ambito_id]),
+                default => $p->enlace,
             },
-            'combo'     => $p->combo?->activo ? route('public.combos.show', $p->combo) : null,
-            default     => $p->enlace,
+            'combo' => $p->combo?->activo ? route('public.combos.show', $p->combo) : null,
+            default => $p->enlace,
         };
     }
 
     private function productosDeSlider($sliders, string $tipo)
     {
         $items = collect($sliders[$tipo] ?? [])->sortBy('orden');
-        $ids   = $items->pluck('producto_id_producto');
+        $ids = $items->pluck('producto_id_producto');
 
         $productos = Producto::whereIn('id_producto', $ids)
             ->where('estado', 1)
+            ->with('presentaciones')
             ->get()
             ->keyBy('id_producto');
 
-        return $items->map(fn($s) => $productos->get($s->producto_id_producto))
+        return $items->map(fn ($s) => $productos->get($s->producto_id_producto))
             ->filter()
             ->values();
     }

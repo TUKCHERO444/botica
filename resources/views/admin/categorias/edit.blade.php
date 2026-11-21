@@ -1,4 +1,4 @@
-<form action="{{ route('admin.categorias.update', $categoria->id_categoria) }}" method="POST" class="p-6">
+<form data-modal-size="md" action="{{ route('admin.categorias.update', $categoria->id_categoria) }}" method="POST" class="p-6">
     @csrf
     @method('PUT')
     <div class="flex items-center justify-between mb-6">

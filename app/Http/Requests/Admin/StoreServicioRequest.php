@@ -16,7 +16,8 @@ class StoreServicioRequest extends FormRequest
         return [
             'nombre' => 'required|string|max:25|unique:servicio,nombre',
             'descripcion' => 'nullable|string|max:100',
-            'precio' => 'required|numeric|min:0',
+            'precio' => 'required|numeric|decimal:0,2|min:0',
+            'costo' => 'nullable|numeric|decimal:0,2|min:0',
         ];
     }
 }

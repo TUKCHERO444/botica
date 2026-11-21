@@ -12,18 +12,20 @@ use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
-    use CacheaPanel, Audita;
+    use Audita, CacheaPanel;
 
     public function index()
     {
         if (request()->ajax()) {
             return $this->getIndex('roles', function () {
-                $roles = Role::with('permissions')->orderBy('id', 'desc')->get();
+                $roles = Role::with('permissions')->orderBy('id', 'desc')->paginate(10)->withQueryString();
+
                 return view('admin.roles.index', compact('roles'))->render();
             });
         }
 
-        $roles = Role::with('permissions')->orderBy('id', 'desc')->get();
+        $roles = Role::with('permissions')->orderBy('id', 'desc')->paginate(10)->withQueryString();
+
         return view('admin.roles.full', compact('roles'));
     }
 
@@ -31,6 +33,7 @@ class RoleController extends Controller
     {
         if (request()->ajax()) {
             $permisos = Permission::orderBy('name')->get();
+
             return view('admin.roles.create', compact('permisos'));
         }
 
@@ -63,6 +66,7 @@ class RoleController extends Controller
         if (request()->ajax()) {
             $permisos = Permission::orderBy('name')->get();
             $rolePermissions = $role->permissions->pluck('name')->toArray();
+
             return view('admin.roles.edit', compact('role', 'permisos', 'rolePermissions'));
         }
 
@@ -75,6 +79,7 @@ class RoleController extends Controller
             if (request()->ajax()) {
                 return response()->json(['success' => false, 'message' => 'No puedes editar el rol Administrador'], 422);
             }
+
             return redirect()->route('admin.roles.index')->with('error', 'No puedes editar el rol Administrador');
         }
 
@@ -102,6 +107,7 @@ class RoleController extends Controller
             if (request()->ajax()) {
                 return response()->json(['success' => false, 'message' => 'No puedes eliminar el rol Administrador'], 422);
             }
+
             return redirect()->route('admin.roles.index')->with('error', 'No puedes eliminar el rol Administrador');
         }
 

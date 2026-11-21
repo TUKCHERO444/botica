@@ -14,7 +14,7 @@ class HeaderTextController extends Controller
 
     public function index()
     {
-        $headerTexts = HeaderText::orderBy('orden')->get();
+        $headerTexts = HeaderText::orderBy('orden')->paginate(10)->withQueryString();
 
         if (request()->ajax()) {
             return view('admin.header-text.index', compact('headerTexts'));
@@ -99,7 +99,7 @@ class HeaderTextController extends Controller
     public function reordenar()
     {
         $data = request()->validate([
-            'items'   => 'required|array',
+            'items' => 'required|array',
             'items.*' => 'required|integer|exists:header_text,id_header_text',
         ]);
 
