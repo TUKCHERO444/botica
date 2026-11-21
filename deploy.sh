@@ -165,7 +165,7 @@ paso "MODO MANTENIMIENTO"
 SECRETO=$(head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | cut -c1-16)
 $PHP artisan down --retry=60 --secret="$SECRETO" >>"$LOG" 2>&1 || morir "no se pudo activar mantenimiento"
 EN_MANTENIMIENTO=1
-log "mantenimiento activo. Acceso de verificacion: https://$DOMINIO/?secret=$SECRETO"
+log "mantenimiento activo. Acceso de verificacion: https://$DOMINIO/$SECRETO"
 
 rollback() {
     log "FALLO en: $1"
@@ -209,11 +209,16 @@ log "caches reconstruidas"
 # ------------------------------------------------- verificacion pre-apertura ---
 paso "VERIFICACION (con el sitio aun en mantenimiento)"
 JAR=$(mktemp)
-curl -s -c "$JAR" -o /dev/null --resolve "$DOMINIO:443:127.0.0.1" "https://$DOMINIO/?secret=$SECRETO"
-CODIGO=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code}' --resolve "$DOMINIO:443:127.0.0.1" "https://$DOMINIO/")
+# Laravel 12: el bypass es la RUTA /<secret> (no ?secret=)
+curl -s -L -c "$JAR" -b "$JAR" -o /dev/null --max-time 20 \
+     --resolve "$DOMINIO:443:127.0.0.1" "https://$DOMINIO/$SECRETO"
+for ruta in / /login; do
+    CODIGO=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code}' --max-time 20 \
+             --resolve "$DOMINIO:443:127.0.0.1" "https://$DOMINIO$ruta")
+    [ "$CODIGO" = "200" ] || { rm -f "$JAR"; rollback "con el secret, $ruta devolvio $CODIGO"; }
+    log "  (interno) $ruta -> 200"
+done
 rm -f "$JAR"
-[ "$CODIGO" = "200" ] || rollback "la home no responde 200 con el secret (obtuvo $CODIGO)"
-log "home interna: 200"
 
 ERRORES=$(grep -c 'ERROR' storage/logs/laravel-"$(date +%F)".log 2>/dev/null || echo 0)
 log "errores en el log de hoy: $ERRORES"
@@ -221,13 +226,32 @@ log "errores en el log de hoy: $ERRORES"
 paso "ABRIENDO AL PUBLICO"
 $PHP artisan up >>"$LOG" 2>&1 || rollback "artisan up"
 EN_MANTENIMIENTO=0
+sleep 2
 
-sleep 1
-for ruta in / /login /up; do
-    C=$(curl -s -o /dev/null -w '%{http_code}' --resolve "$DOMINIO:443:127.0.0.1" "https://$DOMINIO$ruta")
-    log "  $ruta -> $C"
-    [ "$C" = "200" ] || log "  AVISO: $ruta devolvio $C"
+FALLOS=""
+for ruta in / /login; do
+    C=000
+    for intento in 1 2 3 4 5; do
+        C=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
+            --resolve "$DOMINIO:443:127.0.0.1" "https://$DOMINIO$ruta")
+        [ "$C" = "200" ] && break
+        sleep 2
+    done
+    log "  (publico) $ruta -> $C"
+    [ "$C" = "200" ] || FALLOS="$FALLOS $ruta($C)"
 done
+
+CUP=000
+for intento in 1 2 3; do
+    CUP=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
+          --resolve "$DOMINIO:443:127.0.0.1" "https://$DOMINIO/up")
+    [ "$CUP" = "200" ] && break
+    sleep 2
+done
+log "  (publico) /up -> $CUP"
+[ "$CUP" = "200" ] || log "  AVISO: /up devolvio $CUP"
+
+[ -n "$FALLOS" ] && rollback "verificacion publica fallo:$FALLOS"
 
 log ""
 log "DESPLIEGUE OK: $(git log -1 --pretty='%h %s')"
