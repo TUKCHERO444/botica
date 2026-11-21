@@ -33,7 +33,7 @@ class ProductoController extends Controller
         $alerta = request('alerta');
         $alerta = in_array($alerta, ['inventario', 'bajo', 'agotado', 'por_vencer'], true) ? $alerta : null;
 
-        $query = Producto::with('categoria', 'marca', 'unidadBase')
+        $query = Producto::with('categoria', 'marca', 'unidadBase', 'presentaciones.presentacion')
             ->conStockVendibleCalculado()
             ->withCount([
                 'lotes',

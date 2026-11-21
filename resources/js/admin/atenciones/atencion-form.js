@@ -1,5 +1,12 @@
-export function initAtencionForm({ productStartIndex = 1, serviceStartIndex = 1 } = {}) {
-  let prodRowIndex = productStartIndex;
+function formatearCantidad(valor) {
+  const numero = parseFloat(valor);
+
+  if (!Number.isFinite(numero)) return '0';
+
+  return numero.toLocaleString('es-PE', { maximumFractionDigits: 3 });
+}
+
+export function initAtencionForm({ productStartIndex = 1, serviceStartIndex = 1 } = {}) {  let prodRowIndex = productStartIndex;
   let servRowIndex = serviceStartIndex;
 
   const prodContainer = document.getElementById('productos-container');
@@ -46,6 +53,7 @@ export function initAtencionForm({ productStartIndex = 1, serviceStartIndex = 1 
     const select = row.querySelector('.producto-select');
     const cantidad = row.querySelector('.producto-cantidad');
     const advertencia = row.querySelector('.producto-advertencia');
+    const disponible = row.querySelector('.producto-disponible');
 
     if (!select || !advertencia) return;
 
@@ -54,19 +62,48 @@ export function initAtencionForm({ productStartIndex = 1, serviceStartIndex = 1 
     if (!option || !option.value) {
       advertencia.textContent = '';
       advertencia.classList.add('hidden');
+
+      if (disponible) {
+        disponible.textContent = '';
+        disponible.classList.add('hidden');
+      }
+
       return;
     }
 
     const factor = parseFloat(option.dataset.factor) || 1;
     const vendible = parseFloat(option.dataset.stockVendible) || 0;
     const minimo = parseFloat(option.dataset.stockMinimo) || 0;
-    const cantidadBase = (parseFloat(cantidad?.value) || 0) * factor;
+    const equivalencia = option.dataset.equivalencia || '';
+    const unidad = option.dataset.unidad || '';
+    const cantidadActual = parseFloat(cantidad?.value) || 0;
+    const cantidadBase = cantidadActual * factor;
+
+    if (disponible) {
+      const partes = [];
+
+      if (equivalencia && factor > 1) {
+        partes.push('Disponible: ' + equivalencia);
+      }
+
+      if (cantidadActual > 0 && factor > 1) {
+        partes.push(
+          formatearCantidad(cantidadActual) + ' × ' + formatearCantidad(factor)
+          + ' = ' + formatearCantidad(cantidadBase) + (unidad ? ' ' + unidad : '')
+        );
+      }
+
+      disponible.textContent = partes.join(' · ');
+      disponible.classList.toggle('hidden', !partes.length);
+    }
 
     let mensaje = '';
     if (vendible <= 0) {
       mensaje = 'Sin stock vendible.';
     } else if (cantidadBase > vendible) {
-      mensaje = 'La cantidad supera el stock vendible.';
+      const maximo = equivalencia && factor > 1 ? equivalencia.split(' (sobran')[0] : '';
+      mensaje = 'La cantidad supera el stock vendible'
+        + (maximo ? ' (máx. ' + maximo + ')' : '') + '.';
     } else if (minimo > 0 && vendible - cantidadBase < minimo) {
       mensaje = 'Quedará por debajo del stock mínimo.';
     }

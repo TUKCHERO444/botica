@@ -17,7 +17,7 @@ class LoteController extends Controller
 
     public function index()
     {
-        $query = ProductoLote::with('producto.unidadBase')
+        $query = ProductoLote::with(['producto.unidadBase', 'producto.presentaciones.presentacion'])
             ->orderBy('fecha_vencimiento')
             ->orderBy('id');
 

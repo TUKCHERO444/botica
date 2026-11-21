@@ -13,6 +13,36 @@ export function initIngresoForm({ startIndex = 1 } = {}) {
     const alerta = row.querySelector('.producto-alerta');
     const eliminar = row.querySelector('.eliminar-producto');
     const stockSpan = row.querySelector('.producto-stock-actual');
+    const conversion = row.querySelector('.producto-conversion');
+
+    function formatearCantidad(valor) {
+      const numero = parseFloat(valor);
+
+      if (!Number.isFinite(numero)) return '0';
+
+      return numero.toLocaleString('es-PE', { maximumFractionDigits: 3 });
+    }
+
+    function actualizarConversion() {
+      if (!select || !conversion) return;
+
+      const option = select.options[select.selectedIndex];
+      const factor = option ? parseFloat(option.dataset.factor) || 1 : 1;
+      const unidad = option ? option.dataset.unidad || '' : '';
+      const cantidadActual = parseFloat(cantidad?.value) || 0;
+
+      if (cantidadActual > 0 && factor > 1) {
+        conversion.textContent = 'Ingreso: ' + formatearCantidad(cantidadActual)
+          + ' × ' + formatearCantidad(factor) + ' = '
+          + formatearCantidad(cantidadActual * factor)
+          + (unidad ? ' ' + unidad : '') + ' (unidad base)';
+        conversion.classList.remove('hidden');
+        return;
+      }
+
+      conversion.textContent = '';
+      conversion.classList.add('hidden');
+    }
 
     function validarCosto() {
       if (!select || !costo || !alerta) return;
@@ -35,10 +65,13 @@ export function initIngresoForm({ startIndex = 1 } = {}) {
           cantidad.step = paso;
           cantidad.min = paso;
         }
+        actualizarConversion();
         validarCosto();
         actualizarTotales();
       });
     }
+
+    cantidad?.addEventListener('input', actualizarConversion);
 
     costo?.addEventListener('input', validarCosto);
 
@@ -56,6 +89,7 @@ export function initIngresoForm({ startIndex = 1 } = {}) {
     }
 
     validarCosto();
+    actualizarConversion();
   }
 
   function actualizarTotales() {

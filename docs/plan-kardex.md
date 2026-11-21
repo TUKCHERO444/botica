@@ -646,6 +646,8 @@ $stockAnterior = $producto->stock - $cantidad;  // stock antes del cambio
 $stockNuevo = $producto->stock;                  // stock después del cambio
 ```
 
+La vista muestra la cantidad en unidad base y, cuando el movimiento está asociado a una presentación, su equivalente (`2 × Caja x 100`). El stock nuevo incluye además su desglose en presentaciones (`3 Cajas x100 + 9 Blísters x10`). Es información visual: no altera el kardex ni el stock.
+
 ### 15.6. Sin JS adicional
 
 El módulo Kardex no requiere JavaScript propio porque utiliza los mecanismos existentes del panel SPA:

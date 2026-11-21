@@ -411,7 +411,7 @@ Esto permite:
 
 ### 8.2. Reportes nuevos
 
-- Inventario por lote: producto, lote, vencimiento, disponible, costo, estado.
+- Inventario por lote: producto, lote, vencimiento, disponible, costo, estado. La columna de disponible muestra la cantidad base y su equivalencia en presentaciones.
 - Vencimientos: vencidos, críticos, próximos, vigentes.
 - Kardex por lote.
 - Ventas con lotes consumidos.

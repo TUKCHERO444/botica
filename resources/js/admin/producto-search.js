@@ -49,6 +49,7 @@ export function buildProductoSearch(container) {
   const initialPrecio = container.dataset.initialPrecio || '';
   const initialPaso = container.dataset.initialPaso || '';
   const initialStock = container.dataset.initialStock || '';
+  const initialEquivalencia = container.dataset.initialEquivalencia || '';
   const initialVentaLabel = container.dataset.initialVentaLabel || '';
 
   container.dataset.built = '1';
@@ -114,11 +115,27 @@ export function buildProductoSearch(container) {
     const box = document.createElement('div');
     box.className = 'flex items-center justify-between gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2';
 
+    const left = document.createElement('div');
+    left.className = 'min-w-0 flex flex-col';
+
     const text = document.createElement('span');
     text.className = 'text-sm text-emerald-800 font-medium truncate';
     text.textContent = label;
     text.title = label;
-    box.appendChild(text);
+    left.appendChild(text);
+
+    const equivalencia = data.presentacion_equivalencia || data.stock_equivalencia;
+    const factor = Number(data.factor);
+
+    if (equivalencia && (!Number.isFinite(factor) || factor > 1)) {
+      const eq = document.createElement('span');
+      eq.className = 'text-[11px] text-stone-500 truncate';
+      eq.textContent = 'Disponible: ' + equivalencia;
+      eq.title = equivalencia;
+      left.appendChild(eq);
+    }
+
+    box.appendChild(left);
 
     const right = document.createElement('div');
     right.className = 'flex items-center gap-1.5 shrink-0';
@@ -218,6 +235,14 @@ export function buildProductoSearch(container) {
         + (item.stock_vendible_formateado || item.stock_formateado);
       left.appendChild(meta);
 
+      if (item.presentacion_equivalencia && Number(item.factor) > 1) {
+        const eq = document.createElement('div');
+        eq.className = 'text-[11px] text-stone-500 truncate';
+        eq.textContent = 'Disponible: ' + item.presentacion_equivalencia;
+        eq.title = item.presentacion_equivalencia;
+        left.appendChild(eq);
+      }
+
       const alertas = [item.alerta_stock, item.alerta_vencimiento].filter(Boolean);
       if (alertas.length) {
         const alerta = document.createElement('div');
@@ -307,6 +332,7 @@ export function buildProductoSearch(container) {
       precio: initialPrecio,
       paso: initialPaso,
       stockLabel: initialStock,
+      presentacion_equivalencia: initialEquivalencia,
       ventaLabel: initialVentaLabel,
     });
   }

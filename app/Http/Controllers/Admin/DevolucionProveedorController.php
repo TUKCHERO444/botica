@@ -60,6 +60,7 @@ class DevolucionProveedorController extends Controller
             $ingreso = Ingreso::with([
                 'proveedor',
                 'detalles.producto.unidadBase',
+                'detalles.producto.presentaciones.presentacion',
                 'detalles.presentacion.presentacion',
                 'detalles.loteIngreso',
                 'detalles.lote',

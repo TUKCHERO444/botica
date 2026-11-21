@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Helpers\CantidadHelper;
+use App\Helpers\PresentacionStockHelper;
 use Illuminate\Database\Eloquent\Model;
 
 class Producto extends Model
@@ -212,6 +213,7 @@ class Producto extends Model
         $vendible = $this->stockVendible();
         $lote = $this->proximoLoteVendible();
         $dias = $lote?->dias_para_vencer;
+        $desglose = PresentacionStockHelper::desglosar($this, $vendible);
 
         $alertaStock = null;
         if (CantidadHelper::comparar($vendible, 0) <= 0) {
@@ -228,6 +230,8 @@ class Producto extends Model
         return [
             'stock_vendible' => (float) $vendible,
             'stock_vendible_formateado' => CantidadHelper::formatear($vendible).' '.($this->unidadBase?->codigo ?? ''),
+            'stock_desglose' => $desglose['desglose'],
+            'stock_equivalencias' => $desglose['por_presentacion'],
             'stock_minimo' => (float) $this->stock_minimo,
             'stock_minimo_formateado' => $this->stock_minimo_formateado,
             'dias_para_vencer' => $dias,

@@ -48,7 +48,15 @@
                             {{ $lote->fecha_vencimiento?->format('d/m/Y') }}
                             <span class="text-xs text-stone-400">({{ $lote->dias_para_vencer }} días)</span>
                         </td>
-                        <td class="px-4 py-3 text-right text-stone-700">{{ \App\Helpers\CantidadHelper::formatear($lote->cantidad_disponible_base) }}</td>
+                        <td class="px-4 py-3 text-right text-stone-700">
+                            <div>{{ \App\Helpers\CantidadHelper::formatear($lote->cantidad_disponible_base) }}</div>
+                            @if ((float) $lote->cantidad_disponible_base > 0
+                                && $lote->producto?->presentaciones?->contains(fn ($pp) => (float) $pp->factor > 1))
+                                <div class="text-[11px] text-stone-400">
+                                    {{ \App\Helpers\PresentacionStockHelper::desglosar($lote->producto, (string) $lote->cantidad_disponible_base)['desglose'] }}
+                                </div>
+                            @endif
+                        </td>
                         <td class="px-4 py-3">
                             @php($colores = [
                                 'vigente' => 'bg-emerald-100 text-emerald-700',

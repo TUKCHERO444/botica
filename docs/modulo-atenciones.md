@@ -42,7 +42,7 @@ Los servicios no descuentan stock. Su precio se guarda en `atencion_servicio.sub
 
 ### Stock vendible y alertas en el formulario
 
-El selector de productos solo lista presentaciones con **stock vendible** (lotes `disponible`, con cantidad y no vencidos), la misma condición de `InventarioService::consumir()`. Cada opción incluye stock vendible, stock mínimo y alerta (`Bajo mínimo` / `Sin stock vendible`); al cambiar producto o cantidad se muestra la advertencia correspondiente bajo el selector. Son avisos visuales: el bloqueo real lo aplica `StoreAtencionRequest` y, en última instancia, `consumir()`.
+El selector de productos solo lista presentaciones con **stock vendible** (lotes `disponible`, con cantidad y no vencidos), la misma condición de `InventarioService::consumir()`. Cada opción incluye stock vendible, stock mínimo, alerta (`Bajo mínimo` / `Sin stock vendible`) y la equivalencia de esa presentación: con 499 tabletas, `Caja x100` muestra `4 Cajas x100 (sobran 99 TAB)` y no 499 cajas. Al cambiar producto o cantidad, bajo el selector se muestra el disponible y la conversión a unidad base (`2 × 100 = 200 TAB`), además de la advertencia correspondiente. Las presentaciones son equivalentes del mismo stock y no se suman entre sí. Son avisos visuales: el bloqueo real lo aplica `StoreAtencionRequest` y, en última instancia, `consumir()`.
 
 ---
 

@@ -106,13 +106,25 @@
                             {{ $m->referencia_codigo }}
                         </td>
                         <td class="px-4 py-3 text-right font-medium tabular-nums {{ $m->cantidad > 0 ? 'text-emerald-600' : 'text-red-600' }}">
-                            {{ $m->cantidad > 0 ? '+' : '' }}{{ \App\Helpers\CantidadHelper::formatear($m->cantidad) }}
+                            <div>{{ $m->cantidad > 0 ? '+' : '' }}{{ \App\Helpers\CantidadHelper::formatear($m->cantidad) }}</div>
+                            @if ($m->unidad_presentacion && $m->factor && (float) $m->factor > 1)
+                                <div class="text-[11px] font-normal text-stone-400">
+                                    {{ $m->cantidad < 0 ? '−' : '+' }}{{ \App\Helpers\CantidadHelper::formatear(abs((float) ($m->cantidad_presentacion ?? $m->cantidad))) }}
+                                    × {{ $m->unidad_presentacion }}
+                                </div>
+                            @endif
                         </td>
                         <td class="hidden sm:table-cell px-4 py-3 text-right text-stone-500 tabular-nums">
                             {{ \App\Helpers\CantidadHelper::formatear($m->stock_anterior) }}
                         </td>
                         <td class="hidden sm:table-cell px-4 py-3 text-right text-stone-500 tabular-nums">
-                            {{ \App\Helpers\CantidadHelper::formatear($m->stock_nuevo) }}
+                            <div>{{ \App\Helpers\CantidadHelper::formatear($m->stock_nuevo) }}</div>
+                            @if ((float) $m->stock_nuevo > 0
+                                && $m->producto?->presentaciones?->contains(fn ($pp) => (float) $pp->factor > 1))
+                                <div class="text-[11px] font-normal text-stone-400">
+                                    {{ \App\Helpers\PresentacionStockHelper::desglosar($m->producto, (string) $m->stock_nuevo)['desglose'] }}
+                                </div>
+                            @endif
                         </td>
                         <td class="hidden md:table-cell px-4 py-3 text-stone-500">
                             {{ $m->usuario->name ?? '—' }}

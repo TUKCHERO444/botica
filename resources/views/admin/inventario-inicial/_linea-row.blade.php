@@ -24,7 +24,7 @@
     $ventaLabel = $precioVenta ? 'S/ '.number_format((float) $precioVenta, 2) : '';
 @endphp
 
-<tr class="linea-row">
+<tr class="linea-row" data-factor="{{ $presentacion?->factor }}" data-unidad="{{ $producto?->unidadBase?->codigo }}">
     <td class="px-2 py-3 align-top">
         <div class="producto-search"
             data-field="lineas[{{ $index }}][producto_presentacion_id]"
@@ -53,6 +53,7 @@
             value="{{ $detalle ? \App\Helpers\CantidadHelper::formatear($cantidadPresentacion) : '' }}"
             class="w-full rounded-lg border border-stone-300 px-2.5 py-2.5 text-sm text-right focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
             placeholder="Cantidad">
+        <p class="linea-conversion text-[10px] leading-tight text-stone-500 mt-1 hidden"></p>
     </td>
     <td class="px-2 py-3 align-top">
         <input type="number" name="lineas[{{ $index }}][costo_unitario_presentacion]" min="0" step="0.01"

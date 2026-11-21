@@ -75,6 +75,14 @@
                                 $factor = (float) $detalle->factor;
                                 $disponiblePresentacion = $factor > 0 ? $disponibleBase / $factor : 0;
                                 $paso = (float) ($detalle->presentacion?->paso ?? 1);
+                                $unidadBase = $detalle->producto?->unidadBase?->codigo;
+                                $maximoPresentacion = $detalle->presentacion
+                                    ? \App\Helpers\PresentacionStockHelper::maximoPorPresentacion(
+                                        $detalle->presentacion,
+                                        $disponibleBase,
+                                        $unidadBase
+                                    )
+                                    : null;
                             @endphp
 
                             <tr>
@@ -83,8 +91,14 @@
                                 <td class="px-3 py-2 font-mono text-stone-600">{{ $detalle->lote?->codigo_lote ?? $detalle->lote_codigo }}</td>
                                 <td class="px-3 py-2 text-stone-600">{{ $detalle->fecha_vencimiento?->format('d/m/Y') }}</td>
                                 <td class="px-3 py-2 text-stone-600 text-right">
-                                    {{ \App\Helpers\CantidadHelper::formatear($disponiblePresentacion) }}
-                                    <span class="text-xs text-stone-400">({{ \App\Helpers\CantidadHelper::formatear($disponibleBase) }} base)</span>
+                                    @if ($disponibleBase > 0 && $maximoPresentacion)
+                                        <div class="font-medium text-stone-700">{{ $maximoPresentacion['texto'] }}</div>
+                                        <div class="text-[11px] text-stone-400">
+                                            {{ \App\Helpers\CantidadHelper::formatear($disponibleBase) }} {{ $unidadBase }} en base
+                                        </div>
+                                    @else
+                                        <div class="font-medium text-stone-400">Sin disponible</div>
+                                    @endif
                                 </td>
                                 <td class="px-3 py-2 text-stone-600 text-right">S/ {{ number_format((float) $detalle->costo_unitario, 2) }}</td>
                                 <td class="px-3 py-2">
@@ -94,7 +108,10 @@
                                         <input type="number" name="lineas[{{ $i }}][cantidad]" value="0"
                                             min="0" max="{{ $disponiblePresentacion }}" step="{{ $paso }}"
                                             data-costo="{{ (float) $detalle->costo_unitario }}"
+                                            data-factor="{{ $factor }}"
+                                            data-unidad="{{ $unidadBase }}"
                                             class="linea-cantidad w-full rounded-lg border border-stone-300 px-3 py-2 text-sm text-right focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                                        <p class="linea-equivalencia text-[10px] leading-tight text-stone-500 mt-1 hidden"></p>
                                     @else
                                         <span class="text-xs text-stone-400">Sin disponible</span>
                                     @endif

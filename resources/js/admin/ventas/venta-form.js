@@ -1,5 +1,13 @@
 import { buildProductoSearch } from '../producto-search.js';
 
+function formatearCantidad(valor) {
+  const numero = parseFloat(valor);
+
+  if (!Number.isFinite(numero)) return '0';
+
+  return numero.toLocaleString('es-PE', { maximumFractionDigits: 3 });
+}
+
 export function initVentaForm({ startIndex = 1 } = {}) {
   let rowIndex = startIndex;
 
@@ -35,8 +43,38 @@ export function initVentaForm({ startIndex = 1 } = {}) {
     const precio = row.querySelector('.producto-precio');
     const eliminar = row.querySelector('.eliminar-producto');
     const advertencia = row.querySelector('.producto-advertencia');
+    const disponible = row.querySelector('.producto-disponible');
 
     let stockInfo = null;
+
+    function actualizarDisponible() {
+      if (!disponible) return;
+
+      if (!stockInfo || stockInfo.factor <= 1) {
+        disponible.textContent = '';
+        disponible.classList.add('hidden');
+        return;
+      }
+
+      const partes = [];
+
+      if (stockInfo.equivalencia) {
+        partes.push('Disponible: ' + stockInfo.equivalencia);
+      }
+
+      const cantidadActual = parseFloat(cantidad?.value) || 0;
+
+      if (cantidadActual > 0) {
+        const equivalente = cantidadActual * stockInfo.factor;
+        partes.push(
+          formatearCantidad(cantidadActual) + ' × ' + formatearCantidad(stockInfo.factor)
+          + ' = ' + formatearCantidad(equivalente) + (stockInfo.unidad ? ' ' + stockInfo.unidad : '')
+        );
+      }
+
+      disponible.textContent = partes.join(' · ');
+      disponible.classList.toggle('hidden', !partes.length);
+    }
 
     function actualizarAdvertencia() {
       if (!advertencia) return;
@@ -53,7 +91,11 @@ export function initVentaForm({ startIndex = 1 } = {}) {
       if (stockInfo.vendible <= 0) {
         mensaje = 'Sin stock vendible.';
       } else if (cantidadBase > stockInfo.vendible) {
-        mensaje = 'La cantidad supera el stock vendible.';
+        const maximo = stockInfo.equivalencia
+          ? stockInfo.equivalencia.split(' (sobran')[0]
+          : '';
+        mensaje = 'La cantidad supera el stock vendible'
+          + (maximo ? ' (máx. ' + maximo + ')' : '') + '.';
       } else if (stockInfo.minimo > 0 && stockInfo.vendible - cantidadBase < stockInfo.minimo) {
         mensaje = 'Quedará por debajo del stock mínimo.';
       }
@@ -75,6 +117,8 @@ export function initVentaForm({ startIndex = 1 } = {}) {
         vendible: parseFloat(data.stock_vendible ?? data.stock ?? 0) || 0,
         minimo: parseFloat(data.stock_minimo ?? 0) || 0,
         factor: parseFloat(data.factor ?? 1) || 1,
+        unidad: data.unidad || '',
+        equivalencia: data.presentacion_equivalencia || '',
       };
 
       if (precio) precio.value = p.toFixed(2);
@@ -87,6 +131,7 @@ export function initVentaForm({ startIndex = 1 } = {}) {
       }
       recalcularTotal();
       actualizarAdvertencia();
+      actualizarDisponible();
     });
 
     row.addEventListener('producto:cleared', () => {
@@ -99,12 +144,14 @@ export function initVentaForm({ startIndex = 1 } = {}) {
       }
       recalcularTotal();
       actualizarAdvertencia();
+      actualizarDisponible();
     });
 
     if (cantidad) {
       cantidad.addEventListener('input', () => {
         recalcularTotal();
         actualizarAdvertencia();
+        actualizarDisponible();
       });
     }
 
@@ -130,6 +177,7 @@ export function initVentaForm({ startIndex = 1 } = {}) {
       delete search.dataset.initialPrecio;
       delete search.dataset.initialPaso;
       delete search.dataset.initialStock;
+      delete search.dataset.initialEquivalencia;
       search.innerHTML = '';
     }
 
@@ -137,6 +185,12 @@ export function initVentaForm({ startIndex = 1 } = {}) {
     if (advertencia) {
       advertencia.textContent = '';
       advertencia.classList.add('hidden');
+    }
+
+    const disponible = newRow.querySelector('.producto-disponible');
+    if (disponible) {
+      disponible.textContent = '';
+      disponible.classList.add('hidden');
     }
 
     return newRow;

@@ -46,19 +46,25 @@
                         class="producto-select w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
                         <option value="">Seleccione</option>
                         @foreach ($presentaciones as $pp)
-                            @php($resumen = $pp->producto->resumenInventario())
+                            @php
+                                $resumen = $pp->producto->resumenInventario();
+                                $equiv = $resumen['stock_equivalencias'][$pp->id_producto_presentacion] ?? null;
+                            @endphp
                             <option value="{{ $pp->id_producto_presentacion }}"
                                 data-precio="{{ number_format((float) $pp->precio_venta, 2, '.', '') }}"
                                 data-stock="{{ $pp->producto->stock_formateado }}"
                                 data-stock-vendible="{{ $resumen['stock_vendible_formateado'] }}"
                                 data-stock-minimo="{{ $resumen['stock_minimo_formateado'] }}"
                                 data-alerta="{{ $resumen['alerta_stock'] ?? '' }}"
+                                data-equivalencia="{{ $equiv['texto'] ?? '' }}"
+                                data-unidad="{{ $pp->producto->unidadBase?->codigo }}"
                                 data-factor="{{ \App\Helpers\CantidadHelper::formatear($pp->factor) }}"
                                 data-paso="{{ \App\Helpers\CantidadHelper::formatear($pp->paso) }}">
-                                {{ $pp->producto->nombre }} — {{ $pp->nombre_completo }} — S/ {{ number_format($pp->precio_venta, 2) }} (Vendible: {{ $resumen['stock_vendible_formateado'] }}{{ $resumen['alerta_stock'] ? ' · '.$resumen['alerta_stock'] : '' }})
+                                {{ $pp->producto->nombre }} — {{ $pp->nombre_completo }} — S/ {{ number_format($pp->precio_venta, 2) }} (Vendible: {{ $resumen['stock_vendible_formateado'] }}{{ (float) $pp->factor > 1 && $equiv ? ' · '.$equiv['texto'] : '' }}{{ $resumen['alerta_stock'] ? ' · '.$resumen['alerta_stock'] : '' }})
                             </option>
                         @endforeach
                     </select>
+                    <p class="producto-disponible text-[11px] text-stone-500 mt-1 hidden"></p>
                     <p class="producto-advertencia text-[11px] text-amber-600 mt-1 hidden"></p>
                 </div>
                 <div class="sm:col-span-2">

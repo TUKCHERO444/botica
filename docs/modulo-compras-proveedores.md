@@ -66,6 +66,8 @@ El módulo vive en la tabla `ingreso` por compatibilidad histórica, pero en la 
 
 Una compra puede tener **dos líneas del mismo producto** si cambia el lote, el vencimiento o la presentación.
 
+Al elegir presentación y cantidad, la línea muestra en vivo la conversión a unidad base, por ejemplo `Ingreso: 2 × 100 = 200 TAB (unidad base)`. Es solo una ayuda visual: el cálculo y la validación siguen en el servidor.
+
 ---
 
 ## 4. Flujo operativo
@@ -349,6 +351,7 @@ Resultado esperado: **39 pruebas** entre los cuatro archivos.
 1. Recibir una compra con al menos un lote disponible.
 2. Ir a **Compras** y pulsar el botón de devolución de esa compra, o abrir **Devoluciones → Nueva devolución**.
 3. Ingresar una cantidad menor o igual al disponible.
+   La columna **Disponible** muestra la presentación completa y su sobrante en unidad base (por ejemplo `3 Cajas x100 (sobran 90 TAB)`), y el campo de cantidad muestra su equivalencia base (`2 × 100 = 200 TAB`). Es solo una guía visual; la validación sigue en el servidor.
 4. Elegir si el reembolso entra a caja y el método.
 5. Registrar.
 6. Verificar:

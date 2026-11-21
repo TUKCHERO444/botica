@@ -433,7 +433,7 @@ Usar una base descartable (`php artisan migrate:fresh --seed`) y el usuario `adm
 ### 13.2. Carga manual
 
 1. Ir a **Inventario inicial → Nuevo inventario**.
-2. En **Carga manual**, buscar el producto por nombre o código (buscador dinámico), seleccionar la **presentación** (unidad base, caja, blíster, etc.) y completar lote, vencimiento, cantidad y costo **en esa presentación**.
+2. En **Carga manual**, buscar el producto por nombre o código (buscador dinámico), seleccionar la **presentación** (unidad base, caja, blíster, etc.) y completar lote, vencimiento, cantidad y costo **en esa presentación**. La fila muestra la conversión en vivo, por ejemplo `2 × 100 = 200 TAB (unidad base)`, para evitar cargar una caja como si fuera una unidad base.
 3. Guardar borrador.
 4. Si hay un error, abrir **Editar borrador**, corregir líneas y guardar.
 5. Verificar que el stock del producto sigue en `0` y que no hay kardex.

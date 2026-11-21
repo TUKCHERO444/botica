@@ -17,6 +17,37 @@ function reindexLineas() {
     });
 }
 
+function formatearCantidad(valor) {
+    const numero = parseFloat(valor);
+
+    if (!Number.isFinite(numero)) return '0';
+
+    return numero.toLocaleString('es-PE', { maximumFractionDigits: 3 });
+}
+
+function actualizarConversion(fila) {
+    if (!fila) return;
+
+    const hint = fila.querySelector('.linea-conversion');
+    const cantidadInput = fila.querySelector('input[name$="[cantidad_presentacion]"]');
+    const cantidad = parseFloat(cantidadInput?.value) || 0;
+    const factor = parseFloat(fila.dataset.factor) || 1;
+    const unidad = fila.dataset.unidad || '';
+
+    if (!hint) return;
+
+    if (cantidad > 0 && factor > 1) {
+        hint.textContent = formatearCantidad(cantidad) + ' × ' + formatearCantidad(factor)
+            + ' = ' + formatearCantidad(cantidad * factor) + (unidad ? ' ' + unidad : '')
+            + ' (unidad base)';
+        hint.classList.remove('hidden');
+        return;
+    }
+
+    hint.textContent = '';
+    hint.classList.add('hidden');
+}
+
 function agregarLinea() {
     const tbody = document.querySelector('[data-lineas]');
     const primera = tbody?.querySelector('.linea-row');
@@ -43,6 +74,15 @@ function agregarLinea() {
     }
 
     clon.querySelectorAll('.field-error').forEach((error) => error.remove());
+
+    delete clon.dataset.factor;
+    delete clon.dataset.unidad;
+
+    const conversion = clon.querySelector('.linea-conversion');
+    if (conversion) {
+        conversion.textContent = '';
+        conversion.classList.add('hidden');
+    }
 
     tbody.appendChild(clon);
     reindexLineas();
@@ -234,6 +274,12 @@ document.addEventListener('producto:selected', (event) => {
         precioVenta.value = event.detail?.precio_venta_formateado ?? '';
     }
 
+    if (fila) {
+        fila.dataset.factor = event.detail?.factor ?? '';
+        fila.dataset.unidad = event.detail?.unidad ?? '';
+        actualizarConversion(fila);
+    }
+
     search?.querySelector('.producto-search-warning')?.remove();
 
     if (search && event.detail?.elegible === false) {
@@ -253,6 +299,18 @@ document.addEventListener('producto:cleared', (event) => {
     if (costo) costo.value = '';
     if (precioVenta) precioVenta.value = '';
     search?.querySelector('.producto-search-warning')?.remove();
+
+    if (fila) {
+        delete fila.dataset.factor;
+        delete fila.dataset.unidad;
+        actualizarConversion(fila);
+    }
+});
+
+document.addEventListener('input', (event) => {
+    if (event.target.matches('input[name$="[cantidad_presentacion]"]')) {
+        actualizarConversion(event.target.closest('.linea-row'));
+    }
 });
 
 function initBuscadoresProducto() {
@@ -268,3 +326,4 @@ if (modalContainer) {
 }
 
 initBuscadoresProducto();
+document.querySelectorAll('[data-lineas] .linea-row').forEach(actualizarConversion);
