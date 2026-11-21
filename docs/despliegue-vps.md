@@ -801,6 +801,37 @@ php artisan up
 
 > En este proyecto varias migraciones históricas fueron reescritas. **No** ejecute `migrate:fresh` en producción para “arreglar” el esquema: perdería todos los datos.
 
+### 14.3. `deploy.sh` (despliegue con verificaciones)
+
+Script versionado en la raíz del repo, se ejecuta en el servidor como `deploy`:
+
+```bash
+./deploy.sh --dry-run     # muestra el plan, no cambia nada
+./deploy.sh               # despliegue real (pide confirmaciones)
+./deploy.sh --si          # sin preguntas
+./deploy.sh --forzar      # ignora el aviso de caja abierta
+./deploy.sh --sin-build   # no recompila assets
+```
+
+Qué comprueba **antes** de tocar nada (si algo falla, aborta):
+
+- rama `master` y árbol de trabajo limpio (sin ediciones manuales en el servidor);
+- commits nuevos respecto a `origin/master`; si no hay, sale sin hacer nada;
+- lista de migraciones nuevas y **análisis del `up()`** buscando `dropColumn`, `dropTable`, `dropIfExists`, `renameColumn`, `truncate` o `->change(`;
+- **caja abierta** (`caja.estado = 'abierta'`): no despliega a mitad de turno;
+- 2 GB libres de disco; ausencia de `public/hot`;
+- **backup verificado** (`gzip -t` + número de tablas igual al de la base).
+
+Después: `composer install` (si cambió) → `down --retry=60 --secret=...` → `git pull --ff-only` → `migrate --force` → `npm ci && build` (si cambió el frontend) → `optimize` → verificación con el secret → `up` → verificación pública de `/`, `/login` y `/up`.
+
+> El bypass de mantenimiento en Laravel 12 es la **ruta** `https://<dominio>/<secret>` (devuelve 302 + cookie `laravel_maintenance`), **no** `?secret=`. El script ya lo usa así.
+
+Si algo falla: revierte el código al commit anterior, reconstruye cachés y vuelve a abrir el sitio. El log queda en `/home/deploy/deploy.log` y el backup previo en `/var/backups/botica/pre-deploy-*.sql.gz`.
+
+Nunca ejecuta `migrate:fresh`, `migrate:refresh`, `migrate:rollback` ni `db:wipe`; solo aplica migraciones **pendientes** (las que no están en la tabla `migrations`).
+
+> **Primera vez / bootstrap:** si el servidor tiene un `deploy.sh` sin versionar (creado antes de subirlo al repo), `git pull` fallará con *“untracked working tree files would be overwritten”*. Solución: `rm -f /var/www/botica/deploy.sh && git pull --ff-only`; a partir de ahí el archivo viene del repo y ya es tracked.
+
 ---
 
 ## 15. Consideraciones específicas de esta aplicación
@@ -904,10 +935,22 @@ Uso:
 
 1. Restaurar el último dump en `botica_staging` (probado: 58 tablas en 3 s).
 2. `git fetch && git checkout <rama>` en `/var/www/botica-staging`.
-3. `php artisan migrate:pretend` → `php artisan migrate --force`.
+3. `php artisan migrate --pretend` → `php artisan migrate --force`.
 4. Pasar el checklist de §2.3 y, si se tocó inventario, `php artisan inventario:conciliar`.
 
 Advertencias: Cloudinary es la misma cuenta (las imágenes subidas en staging conviven con las de producción) y json.pe consume tokens reales.
+
+**Auto-deploy desde GitHub.** `staging-autodeploy.timer` ejecuta cada 2 minutos `staging-autodeploy.service` (Usuario `staging`), que corre `/usr/local/bin/staging-autodeploy.sh`:
+
+1. Solo actúa sobre la rama activa en `/var/www/botica-staging`; si es `master`/`main`, no hace nada.
+2. `git fetch` de esa rama; si no hay commits nuevos, termina sin tocar nada.
+3. Backup de `botica_staging` en `/var/backups/staging/` (conserva 5).
+4. `git reset --hard origin/<rama>`, `composer install` si cambió `composer.json/lock`, `migrate --force`, `npm ci && build` si cambió el frontend, `optimize`.
+5. Si un paso falla, revierte el código al commit anterior y lo registra.
+
+Log: `/var/www/botica-staging/storage/logs/autodeploy.log` · Forzar: `sudo systemctl start staging-autodeploy.service` · Cambiar de rama: `sudo -u staging git -C /var/www/botica-staging checkout <rama>`.
+
+Los cambios locales dentro de staging se descartan en cada despliegue (`reset --hard`): staging siempre refleja GitHub.
 
 ### 18.3. Pendiente
 

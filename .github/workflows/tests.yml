@@ -1,0 +1,60 @@
+name: Tests
+
+# Corre la suite en cada push (cualquier rama) y en cada PR a master.
+# Si algo se rompe, lo sabes ANTES de desplegar.
+
+on:
+  push:
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phpunit:
+    name: PHP 8.2 + SQLite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar PHP 8.2 y extensiones
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: bcmath, ctype, curl, dom, fileinfo, gd, json, mbstring, openssl, pdo, pdo_sqlite, sqlite3, tokenizer, xml, xmlwriter, zip, intl
+          coverage: none
+
+      - name: Cache de Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Preparar .env de pruebas
+        run: cp .env.example .env
+
+      - name: Instalar dependencias PHP
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Generar APP_KEY
+        run: php artisan key:generate
+
+      - name: Instalar Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Compilar assets (los tests renderizan vistas con @vite)
+        run: |
+          npm ci
+          npm run build
+
+      - name: Ejecutar tests
+        run: php artisan test --colors=always

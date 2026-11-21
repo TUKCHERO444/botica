@@ -24,14 +24,14 @@ Route::get('/productos/{producto}', [ProductoCatalogoController::class, 'show'])
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login-admin');
 });
 
 Route::middleware('guest:clientes')->group(function () {
     Route::get('/registro', [\App\Http\Controllers\Public\RegistroController::class, 'showForm'])->name('public.registro');
     Route::post('/registro', [\App\Http\Controllers\Public\RegistroController::class, 'register']);
     Route::get('/iniciar-sesion', [\App\Http\Controllers\Public\SesionController::class, 'showForm'])->name('public.login');
-    Route::post('/iniciar-sesion', [\App\Http\Controllers\Public\SesionController::class, 'login']);
+    Route::post('/iniciar-sesion', [\App\Http\Controllers\Public\SesionController::class, 'login'])->middleware('throttle:login-cliente');
 });
 
 Route::middleware('auth:clientes')->group(function () {
