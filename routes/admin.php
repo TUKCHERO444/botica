@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\ClienteController;
 use App\Http\Controllers\Admin\ComboController;
 use App\Http\Controllers\Admin\ConciliacionInventarioController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DatosSistemaController;
 use App\Http\Controllers\Admin\DevolucionProveedorController;
 use App\Http\Controllers\Admin\HeaderTextController;
 use App\Http\Controllers\Admin\IngresoController;
@@ -201,6 +202,10 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         'destroy' => 'admin.atenciones.destroy',
     ])->middleware('permission:atenciones');
 
+    Route::get('ingresos/presentaciones/search', [IngresoController::class, 'searchPresentaciones'])
+        ->middleware('permission:ingresos')
+        ->name('admin.ingresos.presentaciones.search');
+
     Route::resource('ingresos', IngresoController::class)->names([
         'index' => 'admin.ingresos.index', 'create' => 'admin.ingresos.create',
         'store' => 'admin.ingresos.store', 'show' => 'admin.ingresos.show',
@@ -236,6 +241,10 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
             Route::get('{devolucion}/anular', [DevolucionProveedorController::class, 'formAnular'])->name('formAnular');
             Route::post('{devolucion}/anular', [DevolucionProveedorController::class, 'anular'])->name('anular');
         });
+
+    Route::get('ajustes/lotes/search', [AjusteInventarioController::class, 'searchLotes'])
+        ->middleware('permission:ajustes')
+        ->name('admin.ajustes.lotes.search');
 
     Route::resource('ajustes', AjusteInventarioController::class)
         ->only(['index', 'create', 'store', 'show'])
@@ -415,5 +424,13 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
             Route::get('/', [ReporteController::class, 'index'])->name('index');
             Route::get('/generate', [ReporteController::class, 'generate'])->name('generate');
             Route::get('/preview', [ReporteController::class, 'preview'])->name('preview');
+        });
+
+    Route::middleware('permission:datos-sistema')
+        ->prefix('datos-sistema')
+        ->name('admin.datos-sistema.')
+        ->group(function () {
+            Route::get('/', [DatosSistemaController::class, 'index'])->name('index');
+            Route::put('/', [DatosSistemaController::class, 'update'])->name('update');
         });
 });

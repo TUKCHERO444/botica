@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Helpers\CantidadHelper;
+use App\Helpers\PresentacionStockHelper;
 use App\Http\Controllers\Admin\Traits\Audita;
 use App\Http\Controllers\Admin\Traits\CacheaPanel;
 use App\Http\Controllers\Controller;
@@ -46,13 +48,60 @@ class AjusteInventarioController extends Controller
             return redirect()->route('admin.ajustes.index');
         }
 
-        $lotes = ProductoLote::with(['producto.unidadBase', 'producto.presentaciones.presentacion'])
+        return view('admin.ajustes.create');
+    }
+
+    public function searchLotes(Request $request)
+    {
+        $q = trim((string) $request->get('q'));
+
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $resultados = ProductoLote::with(['producto.unidadBase', 'producto.presentaciones.presentacion'])
+            ->where(function ($query) use ($q) {
+                $query->where('codigo_lote', 'like', "%{$q}%")
+                    ->orWhere('correlativo', 'like', "%{$q}%")
+                    ->orWhereHas('producto', fn ($producto) => $producto->where('nombre', 'like', "%{$q}%"))
+                    ->orWhereHas('producto.presentaciones', fn ($presentacion) => $presentacion->where('codigo_barras', 'like', "%{$q}%"));
+            })
             ->orderBy('producto_id')
             ->orderBy('fecha_vencimiento')
             ->orderBy('id')
-            ->get();
+            ->limit(20)
+            ->get()
+            ->map(function (ProductoLote $lote) {
+                $producto = $lote->producto;
+                $disponible = (string) $lote->cantidad_disponible_base;
+                $desglose = $producto && (float) $disponible > 0
+                    ? PresentacionStockHelper::desglosar($producto, $disponible)['desglose']
+                    : '';
+                $presentaciones = $producto
+                    ? PresentacionStockHelper::presentacionesParaJs($producto)
+                    : [];
 
-        return view('admin.ajustes.create', compact('lotes'));
+                return [
+                    'id' => $lote->id,
+                    'label' => trim(
+                        ($producto?->nombre ?? '').' — '.$lote->codigo_lote
+                        .' — vence '.$lote->fecha_vencimiento?->format('d/m/Y')
+                        .' — disp. '.CantidadHelper::formatear($disponible).' base',
+                        ' —'
+                    ),
+                    'producto' => $producto?->nombre,
+                    'codigo_lote' => $lote->codigo_lote,
+                    'fecha_vencimiento' => $lote->fecha_vencimiento?->format('d/m/Y'),
+                    'disponible' => (float) $disponible,
+                    'disponible_formateado' => CantidadHelper::formatear($disponible),
+                    'unidad' => $producto?->unidadBase?->codigo,
+                    'desglose' => $desglose,
+                    'presentaciones' => $presentaciones,
+                    'costo' => (float) ($producto?->precio_compra ?? 0),
+                ];
+            });
+
+        return response()->json($resultados);
     }
 
     public function store(StoreAjusteInventarioRequest $request)

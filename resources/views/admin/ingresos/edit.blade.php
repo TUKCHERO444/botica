@@ -101,24 +101,34 @@
 
         <div id="productos-container" data-start-index="{{ max($ingreso->detalles->count(), 1) }}" class="space-y-2">
             @forelse ($ingreso->detalles as $i => $detalle)
-                <div class="producto-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
+                @php
+                    $ppDetalle = $detalle->presentacion;
+                    $prodDetalle = $detalle->producto;
+                    $labelDetalle = $ppDetalle && $prodDetalle
+                        ? trim($prodDetalle->nombre.' — '.$ppDetalle->nombre_completo, ' —')
+                        : '';
+                    $stockDetalle = $prodDetalle?->stock_formateado ?? '';
+                    $ventaDetalle = $ppDetalle ? 'S/ '.number_format((float) $ppDetalle->precio_venta, 2) : '';
+                    $factorDetalle = (float) ($ppDetalle?->factor ?? 1);
+                    $unidadDetalle = $prodDetalle?->unidadBase?->codigo;
+                    $precioVentaDetalle = (float) ($ppDetalle?->precio_venta ?? 0);
+                @endphp
+                <div class="producto-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-end"
+                    data-factor="{{ $factorDetalle }}"
+                    data-unidad="{{ $unidadDetalle }}"
+                    data-precio-venta="{{ number_format($precioVentaDetalle, 2, '.', '') }}">
                     <div class="sm:col-span-4">
                         <label class="block text-xs font-medium text-stone-600 mb-1">Producto / presentación <span class="text-red-500">*</span></label>
-                        <select name="productos[{{ $i }}][producto_presentacion_id]" required
-                            class="producto-select w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
-                            <option value="">Seleccione</option>
-                            @foreach ($presentaciones as $pp)
-                                <option value="{{ $pp->id_producto_presentacion }}"
-                                    data-stock="{{ $pp->producto->stock_formateado }}"
-                                    data-paso="{{ \App\Helpers\CantidadHelper::formatear($pp->paso) }}"
-                                    data-factor="{{ \App\Helpers\CantidadHelper::formatear($pp->factor) }}"
-                                    data-unidad="{{ $pp->producto->unidadBase?->codigo }}"
-                                    data-precio-venta="{{ number_format((float) $pp->precio_venta, 2, '.', '') }}"
-                                    @selected($detalle->producto_presentacion_id == $pp->id_producto_presentacion)>
-                                    {{ $pp->producto->nombre }} — {{ $pp->nombre_completo }} (Stock: {{ $pp->producto->stock_formateado }})
-                                </option>
-                            @endforeach
-                        </select>
+                        <div class="producto-search"
+                            data-field="productos[{{ $i }}][producto_presentacion_id]"
+                            data-url="{{ route('admin.ingresos.presentaciones.search') }}"
+                            data-solo-stock="0"
+                            data-stock-label="Stock"
+                            data-initial-id="{{ $detalle->producto_presentacion_id }}"
+                            data-initial-label="{{ $labelDetalle }}"
+                            data-initial-stock="{{ $stockDetalle }}"
+                            data-initial-venta-label="{{ $ventaDetalle }}"
+                            data-placeholder="Buscar producto por nombre o código..."></div>
                         <span class="producto-info text-[10px] text-stone-400">Stock actual: <span class="producto-stock-actual">{{ $detalle->producto?->stock_formateado ?? '0' }}</span></span>
                         <span class="producto-conversion text-[10px] text-stone-500 block mt-0.5 hidden"></span>
                     </div>
@@ -157,23 +167,16 @@
                     </div>
                 </div>
             @empty
-                <div class="producto-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
+                <div class="producto-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-end"
+                    data-factor="" data-unidad="" data-precio-venta="">
                     <div class="sm:col-span-4">
                         <label class="block text-xs font-medium text-stone-600 mb-1">Producto / presentación <span class="text-red-500">*</span></label>
-                        <select name="productos[0][producto_presentacion_id]" required
-                            class="producto-select w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
-                            <option value="">Seleccione</option>
-                            @foreach ($presentaciones as $pp)
-                                <option value="{{ $pp->id_producto_presentacion }}"
-                                    data-stock="{{ $pp->producto->stock_formateado }}"
-                                    data-paso="{{ \App\Helpers\CantidadHelper::formatear($pp->paso) }}"
-                                    data-factor="{{ \App\Helpers\CantidadHelper::formatear($pp->factor) }}"
-                                    data-unidad="{{ $pp->producto->unidadBase?->codigo }}"
-                                    data-precio-venta="{{ number_format((float) $pp->precio_venta, 2, '.', '') }}">
-                                    {{ $pp->producto->nombre }} — {{ $pp->nombre_completo }} (Stock: {{ $pp->producto->stock_formateado }})
-                                </option>
-                            @endforeach
-                        </select>
+                        <div class="producto-search"
+                            data-field="productos[0][producto_presentacion_id]"
+                            data-url="{{ route('admin.ingresos.presentaciones.search') }}"
+                            data-solo-stock="0"
+                            data-stock-label="Stock"
+                            data-placeholder="Buscar producto por nombre o código..."></div>
                         <span class="producto-info text-[10px] text-stone-400">Stock actual: <span class="producto-stock-actual">0</span></span>
                         <span class="producto-conversion text-[10px] text-stone-500 block mt-0.5 hidden"></span>
                     </div>

@@ -17,7 +17,7 @@ class RoleSeeder extends Seeder
             'proveedores', 'clientes', 'ventas', 'servicios',
             'atenciones', 'ingresos', 'devoluciones', 'ajustes', 'inventario-inicial', 'conciliaciones', 'usuarios', 'roles',
             'caja', 'metodos-pago', 'sliders', 'portada.banners', 'portada.header-text', 'portada.categorias', 'portada.promociones', 'combos',
-            'auditoria', 'kardex', 'lotes', 'reportes',
+            'auditoria', 'kardex', 'lotes', 'reportes', 'datos-sistema',
         ]);
 
         $vendedor = Role::firstOrCreate(['name' => 'Vendedor']);

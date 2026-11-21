@@ -1,6 +1,6 @@
 # Módulo de compras a proveedores
 
-> **Última actualización:** 19/11/2026
+> **Última actualización:** 21/11/2026
 > **Estado:** fases 1 a 7 implementadas.
 > **Referencias:** `plan-mejora-compras-proveedores.md`, `flujo-inventario-lotes-fefo.md`, `plan-lotes-fefo-v2.md`.
 
@@ -67,6 +67,8 @@ El módulo vive en la tabla `ingreso` por compatibilidad histórica, pero en la 
 Una compra puede tener **dos líneas del mismo producto** si cambia el lote, el vencimiento o la presentación.
 
 Al elegir presentación y cantidad, la línea muestra en vivo la conversión a unidad base, por ejemplo `Ingreso: 2 × 100 = 200 TAB (unidad base)`. Es solo una ayuda visual: el cálculo y la validación siguen en el servidor.
+
+El **producto/presentación** se elige con un buscador dinámico (`/admin/ingresos/presentaciones/search`), tanto en creación como en edición. Filtra por nombre de producto, presentación o código de barras, muestra stock y precio de venta, y mantiene el foco en el paso de la presentación seleccionada.
 
 ---
 

@@ -1,6 +1,6 @@
 # Funcionalidades del Sistema — Botica
 
-> **Última actualización:** 20/11/2026
+> **Última actualización:** 21/11/2026
 > **Alcance:** estado funcional vigente del sitio público y del panel administrativo. Verificado contra controladores, rutas, vistas y seeders.
 
 ---
@@ -187,6 +187,7 @@ Funcionamiento general:
 
 - Registro de compras con correlativo **CMP-XXXXXXXX**, estado y usuario que registra.
 - **Borrador:** proveedor, fecha, tipo y número de documento, observaciones, pago desde caja o externo, y múltiples productos con presentación, cantidad, **código de lote**, **fecha de vencimiento** y costo unitario. No mueve stock.
+- El producto/presentación se elige con un **buscador dinámico** por nombre o código de barras, tanto al crear como al editar; muestra stock y precio de venta.
 - **Recibir:** crea/actualiza el lote, crea una capa `lote_ingreso`, convierte la cantidad a unidad base, incrementa `producto.stock`, registra `INGRESO` en el kardex y, si corresponde, el egreso de caja.
 - **Anular:** revierte stock, lotes, kardex y caja; solo si el lote no tuvo consumo.
 - Editar y eliminar solo mientras la compra está en borrador.
@@ -206,6 +207,7 @@ Funcionamiento general:
 ### Ajustes de inventario (`/admin/ajustes`)
 
 - Documento **inmutable** por lote, en unidad base.
+- El lote se elige con un **buscador dinámico** por producto, código de lote, correlativo o código de barras; muestra disponible, vencimiento y costo.
 - Correlativo **AJU-XXXXXXXX**.
 - Tipos: **conteo físico**, **daño**, **vencimiento**, **consumo interno**, **ajuste positivo** y **otro**.
 - **Conteo físico:** se ingresa el stock final contado y el sistema calcula la diferencia.
@@ -303,6 +305,7 @@ Funcionamiento general:
 
 - Listado con nombre, email, rol y estado activo.
 - Crear/editar con asignación de rol; la contraseña es opcional al editar.
+- El campo de contraseña incluye un botón para **mostrar/ocultar** el texto ingresado.
 - Activar/desactivar.
 - Un usuario no puede cambiarse su propio rol ni desactivarse a sí mismo.
 - Solo usuarios activos pueden iniciar sesión.
@@ -313,6 +316,14 @@ Funcionamiento general:
 - Crear/editar rol seleccionando módulos completos.
 - El rol **Administrador** no se puede editar ni eliminar.
 - Permisos disponibles: los módulos del panel + `portada.banners`, `portada.header-text`, `portada.categorias`, `portada.promociones` y `combos`.
+
+### Datos del sistema (`/admin/datos-sistema`)
+
+- Panel de configuración global.
+- Permite editar el **nombre de la empresa o negocio** (máximo 100 caracteres).
+- Ese nombre se muestra en el **sidebar** del panel y en la **cabecera de los tickets** de venta y atención; también se usa en los reportes PDF.
+- Si no se ha configurado, se usa el valor de respaldo `TICKET_NEGOCIO` (por defecto `Botica`).
+- Guardado por AJAX con vista previa y actualización inmediata del sidebar.
 
 ### Auditoría (`/admin/auditoria`)
 

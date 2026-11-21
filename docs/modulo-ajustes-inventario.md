@@ -1,6 +1,6 @@
 # Módulo de ajustes de inventario
 
-> **Última actualización:** 19/11/2026
+> **Última actualización:** 21/11/2026
 > **Estado:** fases 5, 6 y 7 implementadas.
 > **Referencias:** `modulo-compras-proveedores.md`, `flujo-inventario-lotes-fefo.md`, `plan-lotes-fefo-v2.md`.
 
@@ -73,6 +73,8 @@ Ruta: `POST /admin/ajustes`.
    - **ajuste positivo:** suma la cantidad;
    - **daño, vencimiento, consumo interno u otro:** resta la cantidad.
    El formulario muestra el disponible del lote y traduce la cantidad escrita a presentaciones equivalentes (por ejemplo `250 TAB = 2 Cajas x100 + 5 Blísters x10`). Es una ayuda visual; el ajuste se sigue registrando en unidad base.
+
+El lote se elige con un **buscador dinámico** (`/admin/ajustes/lotes/search`) que filtra por producto, código de lote, correlativo o código de barras. Muestra disponible, vencimiento y costo, y conserva la validación del servidor.
 4. Aplica el movimiento:
    - entrada: crea una nueva capa `lote_ingreso`, suma lote y stock, kardex `AJUSTE` positivo;
    - salida: consume las capas del lote, resta lote y stock, registra `lote_consumo` y kardex `AJUSTE` negativo.

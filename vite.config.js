@@ -42,6 +42,7 @@ export default defineConfig({
                 'resources/js/admin/conciliaciones/index.js',
                 'resources/js/admin/dashboard/index.js',
                 'resources/js/admin/caja/cierre.js',
+                'resources/js/admin/datos-sistema/index.js',
                 'resources/js/admin/sidebar.js',
                 'resources/js/public/tienda/productos.js',
                 'resources/js/public/menu-toggle.js',

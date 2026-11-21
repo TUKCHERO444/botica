@@ -2,6 +2,7 @@ import './bootstrap';
 import './admin/toast';
 import './admin/toggle';
 import './admin/autocomplete';
+import './admin/password-toggle';
 import AdminRouter from './admin/router';
 import AdminModal from './admin/modal';
 

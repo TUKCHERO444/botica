@@ -35,6 +35,7 @@ class PermissionSeeder extends Seeder
             'sliders',
             'auditoria',
             'reportes',
+            'datos-sistema',
         ];
 
         foreach ($modulos as $modulo) {

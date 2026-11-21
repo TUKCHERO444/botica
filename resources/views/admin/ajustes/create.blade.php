@@ -58,29 +58,10 @@
                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-start">
                     <div class="sm:col-span-9">
                         <label class="block text-xs font-medium text-stone-600 mb-1">Producto / lote <span class="text-red-500">*</span></label>
-                        <select name="lineas[0][producto_lote_id]" required
-                            class="lote-select w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
-                            <option value="">Seleccione un lote</option>
-                            @foreach ($lotes as $lote)
-                                @php
-                                    $productoLote = $lote->producto;
-                                    $desgloseLote = $productoLote && (float) $lote->cantidad_disponible_base > 0
-                                        ? \App\Helpers\PresentacionStockHelper::desglosar($productoLote, (string) $lote->cantidad_disponible_base)['desglose']
-                                        : '';
-                                    $presentacionesLote = $productoLote
-                                        ? \App\Helpers\PresentacionStockHelper::presentacionesParaJs($productoLote)
-                                        : [];
-                                @endphp
-                                <option value="{{ $lote->id }}"
-                                    data-disponible="{{ (float) $lote->cantidad_disponible_base }}"
-                                    data-unidad="{{ $productoLote?->unidadBase?->codigo }}"
-                                    data-desglose="{{ $desgloseLote }}"
-                                    data-presentaciones="{{ json_encode($presentacionesLote) }}"
-                                    data-costo="{{ (float) ($productoLote?->precio_compra ?? 0) }}">
-                                    {{ $productoLote?->nombre }} — {{ $lote->codigo_lote }} — vence {{ $lote->fecha_vencimiento?->format('d/m/Y') }} — disp. {{ \App\Helpers\CantidadHelper::formatear($lote->cantidad_disponible_base) }} base
-                                </option>
-                            @endforeach
-                        </select>
+                        <div class="lote-search"
+                            data-field="lineas[0][producto_lote_id]"
+                            data-url="{{ route('admin.ajustes.lotes.search') }}"
+                            data-placeholder="Buscar lote por producto o código..."></div>
                         <p class="lote-info text-[11px] leading-tight text-stone-500 mt-1 hidden"></p>
                         <p class="lote-equivalencia text-[11px] leading-tight text-stone-500 mt-0.5 hidden"></p>
                     </div>

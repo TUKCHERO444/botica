@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Atencion;
 use App\Models\Combo;
+use App\Models\ConfiguracionSistema;
 use App\Models\HeaderText;
 use App\Models\Producto;
 use App\Models\Proveedor;
@@ -33,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
 
         Relation::morphMap([
             'producto' => Producto::class,
-            'combo'    => Combo::class,
+            'combo' => Combo::class,
         ]);
 
         View::composer('layouts.public', function ($view) {
@@ -47,6 +48,13 @@ class AppServiceProvider extends ServiceProvider
             $headerTexts = HeaderText::where('activo', true)->orderBy('orden')->get();
             $view->with('headerTexts', $headerTexts);
         });
+
+        View::composer(
+            ['layouts.admin', 'admin.tickets.base', 'admin.reportes.pdf.partials.negocio'],
+            function ($view) {
+                $view->with('nombreNegocio', ConfiguracionSistema::nombreNegocio());
+            }
+        );
     }
 
     /**

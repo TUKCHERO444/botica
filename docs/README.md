@@ -1,6 +1,6 @@
 # Documentación — Botica
 
-> **Última actualización del índice:** 20/11/2026
+> **Última actualización del índice:** 21/11/2026
 
 Esta carpeta contiene las especificaciones y registros de decisiones del sistema. Antes de modificar un módulo, leer su documento y contrastarlo con el código: algunos documentos son **históricos** y describen lógica que ya fue eliminada.
 
@@ -38,6 +38,7 @@ Esta carpeta contiene las especificaciones y registros de decisiones del sistema
 | [`modulo-whatsapp-contacto.md`](modulo-whatsapp-contacto.md) | WhatsApp | Botón de consulta y cotización |
 | [`modulo-caja.md`](modulo-caja.md) | Caja | Apertura, efectivo vs. digital, arqueo, categorías, cierre e historial |
 | [`modulo-metodos-pago.md`](modulo-metodos-pago.md) | Métodos de pago | Entidad dinámica, pagos mixtos, `afecta_efectivo` y desglose `pago` |
+| [`modulo-datos-sistema.md`](modulo-datos-sistema.md) | Datos del sistema | Panel de configuración; nombre del negocio en sidebar, tickets y reportes |
 | [`modulo-ventas.md`](modulo-ventas.md) | Ventas | Venta confirmada, anulación con motivo, reversión de stock y caja |
 | [`modulo-atenciones.md`](modulo-atenciones.md) | Atenciones | Productos + servicios, ticket imprimible, anulación con motivo y reversión |
 | [`modulo-devoluciones-cliente.md`](modulo-devoluciones-cliente.md) | Devoluciones de cliente (C1) | Devolución total por anulación, parcial con ajustes, reembolso opcional y criterios de reingreso |

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $titulo ?? 'Ticket' }} - {{ config('ticket.negocio') }}</title>
+    <title>{{ $titulo ?? 'Ticket' }} - {{ $nombreNegocio ?? config('ticket.negocio', 'Botica') }}</title>
 
     @php
         $ancho = (int) config('ticket.ancho_mm', 80);
@@ -328,7 +328,7 @@
     <div class="hoja">
         <div class="ticket">
             <div class="negocio">
-                <h1>{{ config('ticket.negocio') }}</h1>
+                <h1>{{ $nombreNegocio ?? config('ticket.negocio', 'Botica') }}</h1>
                 @if (config('ticket.ruc'))
                     <p>RUC: {{ config('ticket.ruc') }}</p>
                 @endif

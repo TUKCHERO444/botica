@@ -1,4 +1,5 @@
 import { desglosarCantidad, formatearCantidad } from '../presentacion-stock.js';
+import { buildLoteSearch } from './lote-search.js';
 
 function initAjusteForm() {
   const container = document.getElementById('lotes-container');
@@ -10,35 +11,94 @@ function initAjusteForm() {
 
   let index = container.querySelectorAll('.lote-row').length;
 
+  function parsePresentaciones(valor) {
+    try {
+      return JSON.parse(valor || '[]');
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function datosFila(row) {
+    return {
+      loteId: row.dataset.loteId || '',
+      disponible: parseFloat(row.dataset.disponible || '0') || 0,
+      costo: parseFloat(row.dataset.costo || '0') || 0,
+      unidad: row.dataset.unidad || '',
+      desglose: row.dataset.desglose || '',
+      presentaciones: parsePresentaciones(row.dataset.presentaciones),
+    };
+  }
+
   function actualizarTotal() {
     if (!totalEl) return;
 
     let total = 0;
 
     container.querySelectorAll('.lote-row').forEach((row) => {
-      const select = row.querySelector('.lote-select');
       const input = row.querySelector('.lote-cantidad');
-      if (!select || !input) return;
+      const datos = datosFila(row);
 
-      const option = select.options[select.selectedIndex];
-      if (!option || !option.value) return;
+      if (!datos.loteId || !input) return;
 
       const cantidad = parseFloat(input.value || '0');
-      const costo = parseFloat(option.dataset.costo || '0');
-      const disponible = parseFloat(option.dataset.disponible || '0');
 
       let cantidadAjuste = cantidad;
 
       if (tipo?.value === 'conteo_fisico') {
-        cantidadAjuste = Math.abs(cantidad - disponible);
+        cantidadAjuste = Math.abs(cantidad - datos.disponible);
       }
 
-      if (Number.isFinite(cantidadAjuste) && Number.isFinite(costo)) {
-        total += cantidadAjuste * costo;
+      if (Number.isFinite(cantidadAjuste) && Number.isFinite(datos.costo)) {
+        total += cantidadAjuste * datos.costo;
       }
     });
 
     totalEl.textContent = total.toFixed(2);
+  }
+
+  function actualizarInfo(row) {
+    const info = row.querySelector('.lote-info');
+    const equivalencia = row.querySelector('.lote-equivalencia');
+    const cantidadInput = row.querySelector('.lote-cantidad');
+    const datos = datosFila(row);
+
+    if (!datos.loteId) {
+      if (info) {
+        info.textContent = '';
+        info.classList.add('hidden');
+      }
+
+      if (equivalencia) {
+        equivalencia.textContent = '';
+        equivalencia.classList.add('hidden');
+      }
+
+      return;
+    }
+
+    if (info) {
+      info.textContent = 'Disponible en el lote: ' + formatearCantidad(datos.disponible)
+        + (datos.unidad ? ' ' + datos.unidad : '')
+        + (datos.desglose ? ' · ' + datos.desglose : '');
+      info.classList.remove('hidden');
+    }
+
+    if (!equivalencia) return;
+
+    const cantidadActual = parseFloat(cantidadInput?.value || '0') || 0;
+
+    if (cantidadActual > 0) {
+      const texto = desglosarCantidad(cantidadActual, datos.presentaciones, datos.unidad);
+
+      equivalencia.textContent = 'Cantidad: ' + formatearCantidad(cantidadActual)
+        + (datos.unidad ? ' ' + datos.unidad : '')
+        + (texto ? ' = ' + texto : '');
+      equivalencia.classList.remove('hidden');
+    } else {
+      equivalencia.textContent = '';
+      equivalencia.classList.add('hidden');
+    }
   }
 
   function actualizarLabels() {
@@ -57,8 +117,8 @@ function initAjusteForm() {
       help = 'La cantidad se descuenta del lote seleccionado.';
     }
 
-    document.querySelectorAll('.ajuste-cantidad-label').forEach((el) => {
-      el.innerHTML = label + ' <span class="text-red-500">*</span>';
+    document.querySelectorAll('.ajuste-cantidad-label').forEach((element) => {
+      element.innerHTML = label + ' <span class="text-red-500">*</span>';
     });
 
     const helpEl = document.getElementById('ajuste-help');
@@ -68,69 +128,38 @@ function initAjusteForm() {
   }
 
   function configurar(row) {
-    const select = row.querySelector('.lote-select');
     const cantidad = row.querySelector('.lote-cantidad');
-    const info = row.querySelector('.lote-info');
-    const equivalencia = row.querySelector('.lote-equivalencia');
+    const search = row.querySelector('.lote-search');
 
-    function actualizarInfo() {
-      const option = select?.options[select.selectedIndex];
+    row.addEventListener('lote:selected', (event) => {
+      const data = event.detail || {};
 
-      if (!option || !option.value) {
-        if (info) {
-          info.textContent = '';
-          info.classList.add('hidden');
-        }
-        if (equivalencia) {
-          equivalencia.textContent = '';
-          equivalencia.classList.add('hidden');
-        }
-        return;
-      }
+      row.dataset.loteId = data.id || '';
+      row.dataset.disponible = data.disponible ?? 0;
+      row.dataset.unidad = data.unidad || '';
+      row.dataset.desglose = data.desglose || '';
+      row.dataset.presentaciones = JSON.stringify(data.presentaciones || []);
+      row.dataset.costo = data.costo ?? 0;
 
-      const unidad = option.dataset.unidad || '';
-      const disponible = parseFloat(option.dataset.disponible || '0') || 0;
-      const desglose = option.dataset.desglose || '';
-
-      if (info) {
-        info.textContent = 'Disponible en el lote: ' + formatearCantidad(disponible)
-          + (unidad ? ' ' + unidad : '')
-          + (desglose ? ' · ' + desglose : '');
-        info.classList.remove('hidden');
-      }
-
-      if (equivalencia) {
-        const cantidadActual = parseFloat(cantidad?.value || '0') || 0;
-
-        if (cantidadActual > 0) {
-          let presentaciones = [];
-
-          try {
-            presentaciones = JSON.parse(option.dataset.presentaciones || '[]');
-          } catch (e) {
-            presentaciones = [];
-          }
-
-          const texto = desglosarCantidad(cantidadActual, presentaciones, unidad);
-
-          equivalencia.textContent = 'Cantidad: ' + formatearCantidad(cantidadActual)
-            + (unidad ? ' ' + unidad : '')
-            + (texto ? ' = ' + texto : '');
-          equivalencia.classList.remove('hidden');
-        } else {
-          equivalencia.textContent = '';
-          equivalencia.classList.add('hidden');
-        }
-      }
-    }
-
-    select?.addEventListener('change', () => {
+      actualizarInfo(row);
       actualizarTotal();
-      actualizarInfo();
     });
+
+    row.addEventListener('lote:cleared', () => {
+      delete row.dataset.loteId;
+      delete row.dataset.disponible;
+      delete row.dataset.unidad;
+      delete row.dataset.desglose;
+      delete row.dataset.presentaciones;
+      delete row.dataset.costo;
+
+      actualizarInfo(row);
+      actualizarTotal();
+    });
+
     cantidad?.addEventListener('input', () => {
       actualizarTotal();
-      actualizarInfo();
+      actualizarInfo(row);
     });
 
     row.querySelector('.eliminar-lote')?.addEventListener('click', () => {
@@ -140,7 +169,11 @@ function initAjusteForm() {
       }
     });
 
-    actualizarInfo();
+    if (search && search.dataset.built !== '1') {
+      buildLoteSearch(search);
+    }
+
+    actualizarInfo(row);
   }
 
   btnAgregar.addEventListener('click', () => {
@@ -149,18 +182,46 @@ function initAjusteForm() {
 
     const row = first.cloneNode(true);
 
-    row.querySelectorAll('select, input').forEach((el) => {
-      const name = el.getAttribute('name');
+    row.querySelectorAll('input').forEach((element) => {
+      const name = element.getAttribute('name');
+
       if (name) {
-        el.setAttribute('name', name.replace(/\d+/, index));
+        element.setAttribute('name', name.replace(/\d+/, index));
       }
-      if (el.tagName === 'INPUT') {
-        el.value = el.name.includes('cantidad') ? '0' : '';
-      }
-      if (el.tagName === 'SELECT') {
-        el.selectedIndex = 0;
+
+      if (element.classList.contains('lote-cantidad')) {
+        element.value = '0';
+      } else if (!element.classList.contains('lote-search-input')) {
+        element.value = '';
       }
     });
+
+    const search = row.querySelector('.lote-search');
+
+    if (search) {
+      delete search.dataset.built;
+      search.dataset.field = search.dataset.field.replace(/\d+/, index);
+      search.innerHTML = '';
+    }
+
+    delete row.dataset.loteId;
+    delete row.dataset.disponible;
+    delete row.dataset.unidad;
+    delete row.dataset.desglose;
+    delete row.dataset.presentaciones;
+    delete row.dataset.costo;
+
+    const info = row.querySelector('.lote-info');
+    if (info) {
+      info.textContent = '';
+      info.classList.add('hidden');
+    }
+
+    const equivalencia = row.querySelector('.lote-equivalencia');
+    if (equivalencia) {
+      equivalencia.textContent = '';
+      equivalencia.classList.add('hidden');
+    }
 
     container.appendChild(row);
     configurar(row);
@@ -172,6 +233,37 @@ function initAjusteForm() {
 
   container.querySelectorAll('.lote-row').forEach(configurar);
   actualizarLabels();
+
+  const form = container.closest('form');
+
+  if (form) {
+    form.addEventListener('submit', (event) => {
+      const incompleta = Array.from(container.querySelectorAll('.lote-row')).find((row) => {
+        const hidden = row.querySelector('.lote-search-value');
+
+        return !hidden || !hidden.value;
+      });
+
+      if (!incompleta) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const input = incompleta.querySelector('.lote-search-input');
+      if (input) {
+        input.focus();
+        input.dispatchEvent(new Event('input'));
+      }
+
+      const mensaje = 'Seleccione un lote en todas las líneas.';
+
+      if (window.AdminToast) {
+        window.AdminToast.show(mensaje, 'error');
+      } else {
+        alert(mensaje);
+      }
+    });
+  }
 }
 
 initAjusteForm();

@@ -1,5 +1,5 @@
 @php
-    $negocio = config('ticket.negocio', 'Botica');
+    $negocio = $nombreNegocio ?? config('ticket.negocio', 'Botica');
     $ruc = config('ticket.ruc');
     $direccion = config('ticket.direccion');
     $telefono = config('ticket.telefono');

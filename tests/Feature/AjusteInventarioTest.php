@@ -237,11 +237,44 @@ class AjusteInventarioTest extends TestCase
             ->get(route('admin.ajustes.create'))
             ->assertOk()
             ->assertSee('Nuevo ajuste de inventario')
-            ->assertSee('LOT-A');
+            ->assertSee('lote-search', false)
+            ->assertSee('/admin/ajustes/lotes/search', false)
+            ->assertDontSee('lote-select', false);
 
         $this->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
             ->get(route('admin.ajustes.show', $ajuste))
             ->assertOk()
             ->assertSee('Lotes ajustados');
+    }
+
+    public function test_buscador_de_lotes_devuelve_resultados(): void
+    {
+        $lote = $this->crearLote('LOT-BUSCAR', 20);
+
+        $response = $this->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->getJson(route('admin.ajustes.lotes.search', ['q' => 'LOT-BUSCAR']));
+
+        $response->assertOk()
+            ->assertJsonFragment([
+                'id' => $lote->id,
+                'codigo_lote' => 'LOT-BUSCAR',
+                'unidad' => 'TAB',
+            ]);
+
+        $data = $response->json();
+        $this->assertCount(1, $data);
+        $this->assertEquals(20, $data[0]['disponible']);
+        $this->assertNotEmpty($data[0]['desglose']);
+        $this->assertNotEmpty($data[0]['presentaciones']);
+    }
+
+    public function test_buscador_de_lotes_requiere_dos_caracteres(): void
+    {
+        $this->crearLote('LOT-BUSCAR', 20);
+
+        $this->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->getJson(route('admin.ajustes.lotes.search', ['q' => 'L']))
+            ->assertOk()
+            ->assertExactJson([]);
     }
 }

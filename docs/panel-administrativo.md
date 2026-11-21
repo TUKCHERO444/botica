@@ -263,6 +263,7 @@ Los módulos con lógica propia cargan su entrypoint desde el partial o el formu
 - Atenciones: `index.js`, `create.js` (bloque de pago con `pagos.js`). Las atenciones no se editan; se anulan con motivo.
 - Compras: `ingresos/index.js`, `ingresos/create.js`, `ingresos/edit.js`.
 - Caja, dashboard, banners, sliders, combos, promociones, header-text, portada-categorías, auditoría, reportes.
+- Datos del sistema: `datos-sistema/index.js` (formulario con vista previa y guardado AJAX).
 - Formularios de clientes/proveedores: consulta RENIEC/SUNAT.
 
 Todas esas entradas están registradas en `vite.config.js`.

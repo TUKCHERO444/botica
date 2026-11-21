@@ -44,6 +44,7 @@ export function buildProductoSearch(container) {
   const url = container.dataset.url || '/admin/ventas/presentaciones/search';
   const placeholder = container.dataset.placeholder || 'Buscar producto por nombre o código...';
   const soloStock = container.dataset.soloStock === '0' ? 0 : 1;
+  const stockLabelText = container.dataset.stockLabel || 'Vendible';
   const initialId = container.dataset.initialId || '';
   const initialLabel = container.dataset.initialLabel || '';
   const initialPrecio = container.dataset.initialPrecio || '';
@@ -148,7 +149,7 @@ export function buildProductoSearch(container) {
     if (stockLabel) {
       const stock = document.createElement('span');
       stock.className = 'text-[11px] text-stone-500 whitespace-nowrap';
-      stock.textContent = 'Vendible: ' + stockLabel;
+      stock.textContent = stockLabelText + ': ' + stockLabel;
       right.appendChild(stock);
     }
 
@@ -231,7 +232,7 @@ export function buildProductoSearch(container) {
 
       const meta = document.createElement('div');
       meta.className = 'text-xs text-stone-400 truncate';
-      meta.textContent = item.precio_formateado + ' · Vendible: '
+      meta.textContent = item.precio_formateado + ' · ' + stockLabelText + ': '
         + (item.stock_vendible_formateado || item.stock_formateado);
       left.appendChild(meta);
 

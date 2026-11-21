@@ -470,13 +470,14 @@ class VentaFraccionadaTest extends TestCase
         $response->assertSee('/admin/ventas/presentaciones/search', false);
     }
 
-    public function test_formulario_de_ingreso_muestra_presentaciones(): void
+    public function test_formulario_de_ingreso_usa_buscador_de_productos(): void
     {
         $response = $this->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
             ->get(route('admin.ingresos.create'));
 
         $response->assertOk();
-        $response->assertSee('Caja x 100');
+        $response->assertSee('producto-search', false);
+        $response->assertSee('/admin/ingresos/presentaciones/search', false);
         $response->assertSee('producto_presentacion_id', false);
         $response->assertSee('fecha_vencimiento', false);
         $response->assertSee('Lote');

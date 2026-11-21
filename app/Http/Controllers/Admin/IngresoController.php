@@ -66,13 +66,64 @@ class IngresoController extends Controller
     {
         if ($this->esAjax(request())) {
             $proveedores = Proveedor::where('estado', 1)->orderBy('razon_social')->get();
-            $presentaciones = $this->presentacionesDisponibles();
             $cajaAbierta = Caja::abierta()->first();
 
-            return view('admin.ingresos.create', compact('proveedores', 'presentaciones', 'cajaAbierta'));
+            return view('admin.ingresos.create', compact('proveedores', 'cajaAbierta'));
         }
 
         return redirect()->route('admin.ingresos.index');
+    }
+
+    public function searchPresentaciones(Request $request)
+    {
+        $q = trim((string) $request->get('q'));
+
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $resultados = ProductoPresentacion::query()
+            ->with(['producto.unidadBase', 'presentacion'])
+            ->where('producto_presentacion.activo', true)
+            ->whereHas('producto', fn ($query) => $query->where('estado', 1))
+            ->where(function ($query) use ($q) {
+                $query->where('producto_presentacion.nombre', 'like', "%{$q}%")
+                    ->orWhere('producto_presentacion.codigo_barras', 'like', "%{$q}%")
+                    ->orWhereHas('producto', fn ($producto) => $producto->where('nombre', 'like', "%{$q}%"))
+                    ->orWhereHas('presentacion', fn ($presentacion) => $presentacion->where('nombre', 'like', "%{$q}%"));
+            })
+            ->join('producto', 'producto.id_producto', '=', 'producto_presentacion.producto_id_producto')
+            ->orderBy('producto.nombre')
+            ->orderBy('producto_presentacion.orden')
+            ->limit(15)
+            ->select('producto_presentacion.*')
+            ->get()
+            ->map(function (ProductoPresentacion $presentacion) {
+                $producto = $presentacion->producto;
+                $precioVenta = (float) $presentacion->precio_venta;
+                $stock = (float) ($producto?->stock ?? 0);
+
+                return [
+                    'id' => $presentacion->id_producto_presentacion,
+                    'label' => trim(($producto?->nombre ?? '').' — '.$presentacion->nombre_completo, ' —'),
+                    'producto' => $producto?->nombre,
+                    'presentacion' => $presentacion->nombre_completo,
+                    'codigo_barras' => $presentacion->codigo_barras,
+                    'unidad' => $producto?->unidadBase?->codigo,
+                    'factor' => (float) $presentacion->factor,
+                    'paso' => (float) ($presentacion->paso ?: 1),
+                    'precio' => $precioVenta,
+                    'precio_formateado' => 'S/ '.number_format($precioVenta, 2),
+                    'precio_venta' => $precioVenta,
+                    'precio_venta_formateado' => 'S/ '.number_format($precioVenta, 2),
+                    'ventaLabel' => 'S/ '.number_format($precioVenta, 2),
+                    'stock' => $stock,
+                    'stock_formateado' => $producto?->stock_formateado ?? '',
+                    'stockLabel' => $producto?->stock_formateado ?? '',
+                ];
+            });
+
+        return response()->json($resultados);
     }
 
     public function store(StoreIngresoRequest $request)
@@ -106,14 +157,12 @@ class IngresoController extends Controller
 
         if ($this->esAjax(request())) {
             $proveedores = Proveedor::where('estado', 1)->orderBy('razon_social')->get();
-            $presentaciones = $this->presentacionesDisponibles(false);
             $cajaAbierta = Caja::abierta()->first();
             $ingreso->load(['proveedor', 'detalles.presentacion.presentacion', 'detalles.producto.unidadBase']);
 
             return view('admin.ingresos.edit', compact(
                 'ingreso',
                 'proveedores',
-                'presentaciones',
                 'cajaAbierta'
             ));
         }
@@ -253,19 +302,6 @@ class IngresoController extends Controller
 
         return redirect()->route('admin.ingresos.index')
             ->with('success', 'Compra anulada correctamente.');
-    }
-
-    private function presentacionesDisponibles(bool $soloConProductosActivos = true)
-    {
-        return ProductoPresentacion::with(['producto.unidadBase', 'presentacion'])
-            ->where('activo', true)
-            ->when($soloConProductosActivos, function ($q) {
-                $q->whereHas('producto', fn ($p) => $p->where('estado', 1));
-            })
-            ->join('producto', 'producto.id_producto', '=', 'producto_presentacion.producto_id_producto')
-            ->orderBy('producto.nombre')
-            ->select('producto_presentacion.*')
-            ->get();
     }
 
     private function error(Request $request, string $message, int $status = 422)
