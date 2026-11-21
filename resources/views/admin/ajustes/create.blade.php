@@ -54,32 +54,48 @@
         </div>
 
         <div id="lotes-container" class="space-y-2">
-            <div class="lote-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
-                <div class="sm:col-span-9">
-                    <label class="block text-xs font-medium text-stone-600 mb-1">Producto / lote <span class="text-red-500">*</span></label>
-                    <select name="lineas[0][producto_lote_id]" required
-                        class="lote-select w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
-                        <option value="">Seleccione un lote</option>
-                        @foreach ($lotes as $lote)
-                            <option value="{{ $lote->id }}"
-                                data-disponible="{{ (float) $lote->cantidad_disponible_base }}"
-                                data-costo="{{ (float) ($lote->producto?->precio_compra ?? 0) }}">
-                                {{ $lote->producto?->nombre }} — {{ $lote->codigo_lote }} — vence {{ $lote->fecha_vencimiento?->format('d/m/Y') }} — disp. {{ \App\Helpers\CantidadHelper::formatear($lote->cantidad_disponible_base) }} base
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="sm:col-span-3">
-                    <label class="ajuste-cantidad-label block text-xs font-medium text-stone-600 mb-1">Cantidad (unidad base) <span class="text-red-500">*</span></label>
-                    <input type="number" name="lineas[0][cantidad]" value="0" min="0" step="0.001" required
-                        class="lote-cantidad w-full rounded-lg border border-stone-300 px-3 py-2 text-sm text-right focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
-                </div>
-                <div class="sm:col-span-12 flex justify-end">
-                    <button type="button" class="eliminar-lote text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition" title="Eliminar">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                    </button>
+            <div class="lote-row">
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-start">
+                    <div class="sm:col-span-9">
+                        <label class="block text-xs font-medium text-stone-600 mb-1">Producto / lote <span class="text-red-500">*</span></label>
+                        <select name="lineas[0][producto_lote_id]" required
+                            class="lote-select w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                            <option value="">Seleccione un lote</option>
+                            @foreach ($lotes as $lote)
+                                @php
+                                    $productoLote = $lote->producto;
+                                    $desgloseLote = $productoLote && (float) $lote->cantidad_disponible_base > 0
+                                        ? \App\Helpers\PresentacionStockHelper::desglosar($productoLote, (string) $lote->cantidad_disponible_base)['desglose']
+                                        : '';
+                                    $presentacionesLote = $productoLote
+                                        ? \App\Helpers\PresentacionStockHelper::presentacionesParaJs($productoLote)
+                                        : [];
+                                @endphp
+                                <option value="{{ $lote->id }}"
+                                    data-disponible="{{ (float) $lote->cantidad_disponible_base }}"
+                                    data-unidad="{{ $productoLote?->unidadBase?->codigo }}"
+                                    data-desglose="{{ $desgloseLote }}"
+                                    data-presentaciones="{{ json_encode($presentacionesLote) }}"
+                                    data-costo="{{ (float) ($productoLote?->precio_compra ?? 0) }}">
+                                    {{ $productoLote?->nombre }} — {{ $lote->codigo_lote }} — vence {{ $lote->fecha_vencimiento?->format('d/m/Y') }} — disp. {{ \App\Helpers\CantidadHelper::formatear($lote->cantidad_disponible_base) }} base
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="lote-info text-[11px] leading-tight text-stone-500 mt-1 hidden"></p>
+                        <p class="lote-equivalencia text-[11px] leading-tight text-stone-500 mt-0.5 hidden"></p>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label class="ajuste-cantidad-label block text-xs font-medium text-stone-600 mb-1">Cantidad (unidad base) <span class="text-red-500">*</span></label>
+                        <input type="number" name="lineas[0][cantidad]" value="0" min="0" step="0.001" required
+                            class="lote-cantidad w-full rounded-lg border border-stone-300 px-3 py-2 text-sm text-right focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
+                    </div>
+                    <div class="sm:col-span-12 flex justify-end">
+                        <button type="button" class="eliminar-lote text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition" title="Eliminar">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

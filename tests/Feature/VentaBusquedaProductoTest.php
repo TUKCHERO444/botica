@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Categoria;
 use App\Models\Marca;
+use App\Models\Presentacion;
 use App\Models\Producto;
 use App\Models\ProductoPresentacion;
 use App\Models\User;
@@ -117,6 +118,62 @@ class VentaBusquedaProductoTest extends TestCase
                 'alerta_stock' => 'Bajo mínimo',
                 'alerta_vencimiento' => 'Vence en 10 días',
             ]);
+    }
+
+    public function test_expone_equivalencia_por_presentacion_y_desglose(): void
+    {
+        $presentacionCaja = Presentacion::create([
+            'nombre' => 'Caja',
+            'abreviatura' => 'CJA',
+            'activo' => true,
+        ]);
+        $presentacionBlister = Presentacion::create([
+            'nombre' => 'Blíster',
+            'abreviatura' => 'BLI',
+            'activo' => true,
+        ]);
+
+        $caja = ProductoPresentacion::create([
+            'producto_id_producto' => $this->producto->id_producto,
+            'presentacion_id' => $presentacionCaja->id_presentacion,
+            'factor' => 100,
+            'precio_venta' => 80,
+            'paso' => 1,
+            'activo' => true,
+            'orden' => 1,
+        ]);
+
+        ProductoPresentacion::create([
+            'producto_id_producto' => $this->producto->id_producto,
+            'presentacion_id' => $presentacionBlister->id_presentacion,
+            'factor' => 10,
+            'precio_venta' => 9,
+            'paso' => 1,
+            'activo' => true,
+            'orden' => 2,
+        ]);
+
+        $this->crearLoteInicial($this->producto, $this->presentacion, 499, 'LOT-499');
+
+        $resultados = collect(
+            $this->getJson(route('admin.ventas.presentaciones.search', ['q' => 'paracet']))
+                ->assertOk()
+                ->json()
+        )->keyBy('id');
+
+        $cajaData = $resultados[$caja->id_producto_presentacion];
+
+        $this->assertSame('499 UND', $cajaData['stock_vendible_formateado']);
+        $this->assertSame(
+            '4 Cajas x100 + 9 Blísters x10 + 9 Unidades',
+            $cajaData['stock_desglose']
+        );
+        $this->assertSame('4', $cajaData['presentacion_maximo_formateado']);
+        $this->assertSame('99', $cajaData['presentacion_sobrante_formateado']);
+        $this->assertSame(
+            '4 Cajas x100 (sobran 99 UND)',
+            $cajaData['presentacion_equivalencia']
+        );
     }
 
     public function test_omite_productos_cuyo_stock_solo_esta_vencido(): void

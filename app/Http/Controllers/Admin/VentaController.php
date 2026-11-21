@@ -103,7 +103,7 @@ class VentaController extends Controller
         $soloConStock = $request->boolean('solo_stock', true);
 
         $resultados = ProductoPresentacion::query()
-            ->with(['producto.unidadBase', 'producto.lotesVendibles', 'presentacion'])
+            ->with(['producto.unidadBase', 'producto.lotesVendibles', 'producto.presentaciones.presentacion', 'presentacion'])
             ->where('producto_presentacion.activo', true)
             ->whereHas('producto', function ($query) use ($soloConStock) {
                 $query->where('estado', 1);
@@ -127,6 +127,8 @@ class VentaController extends Controller
             ->get()
             ->map(function (ProductoPresentacion $pp) {
                 $producto = $pp->producto;
+                $resumen = $producto?->resumenInventario() ?? [];
+                $equivalencia = $resumen['stock_equivalencias'][$pp->id_producto_presentacion] ?? [];
 
                 return [
                     'id' => $pp->id_producto_presentacion,
@@ -138,9 +140,14 @@ class VentaController extends Controller
                     'precio_formateado' => 'S/ '.number_format((float) $pp->precio_venta, 2),
                     'stock' => (float) ($producto?->stock ?? 0),
                     'stock_formateado' => $producto?->stock_formateado ?? '',
+                    'unidad' => $producto?->unidadBase?->codigo ?? '',
                     'paso' => (float) $pp->paso,
                     'factor' => (float) $pp->factor,
-                    ...($producto?->resumenInventario() ?? []),
+                    'presentacion_maximo' => $equivalencia['maximo'] ?? null,
+                    'presentacion_maximo_formateado' => $equivalencia['maximo_formateado'] ?? null,
+                    'presentacion_sobrante_formateado' => $equivalencia['sobrante_formateado'] ?? null,
+                    'presentacion_equivalencia' => $equivalencia['texto'] ?? null,
+                    ...$resumen,
                 ];
             });
 

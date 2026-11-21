@@ -1,3 +1,5 @@
+import { formatearCantidad } from '../presentacion-stock.js';
+
 function actualizarTotal() {
   const totalEl = document.getElementById('devolucion-total');
   if (!totalEl) return;
@@ -16,6 +18,27 @@ function actualizarTotal() {
   totalEl.textContent = total.toFixed(2);
 }
 
+function actualizarEquivalencia(input) {
+  if (!input) return;
+
+  const hint = input.closest('td')?.querySelector('.linea-equivalencia');
+  if (!hint) return;
+
+  const cantidad = parseFloat(input.value || '0') || 0;
+  const factor = parseFloat(input.dataset.factor || '1') || 1;
+  const unidad = input.dataset.unidad || '';
+
+  if (cantidad > 0 && factor > 1) {
+    hint.textContent = formatearCantidad(cantidad) + ' × ' + formatearCantidad(factor)
+      + ' = ' + formatearCantidad(cantidad * factor) + (unidad ? ' ' + unidad : '');
+    hint.classList.remove('hidden');
+    return;
+  }
+
+  hint.textContent = '';
+  hint.classList.add('hidden');
+}
+
 function initDevolucionCreate() {
   const select = document.getElementById('devolucion-ingreso');
 
@@ -28,6 +51,7 @@ function initDevolucionCreate() {
     });
   }
 
+  document.querySelectorAll('.linea-cantidad').forEach(actualizarEquivalencia);
   actualizarTotal();
 }
 
@@ -37,6 +61,7 @@ if (!window.__devolucionCreateBound) {
   document.addEventListener('input', (event) => {
     if (event.target.classList.contains('linea-cantidad')) {
       actualizarTotal();
+      actualizarEquivalencia(event.target);
     }
   });
 }

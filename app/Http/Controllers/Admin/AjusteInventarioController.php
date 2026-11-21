@@ -46,7 +46,7 @@ class AjusteInventarioController extends Controller
             return redirect()->route('admin.ajustes.index');
         }
 
-        $lotes = ProductoLote::with('producto')
+        $lotes = ProductoLote::with(['producto.unidadBase', 'producto.presentaciones.presentacion'])
             ->orderBy('producto_id')
             ->orderBy('fecha_vencimiento')
             ->orderBy('id')
@@ -89,7 +89,8 @@ class AjusteInventarioController extends Controller
     {
         $ajuste->load([
             'user',
-            'detalles.producto',
+            'detalles.producto.unidadBase',
+            'detalles.producto.presentaciones.presentacion',
             'detalles.lote',
             'detalles.presentacion',
         ]);

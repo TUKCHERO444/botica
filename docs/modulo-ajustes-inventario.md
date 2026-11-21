@@ -72,6 +72,7 @@ Ruta: `POST /admin/ajustes`.
    - **conteo físico:** calcula `diferencia = contado − disponible`;
    - **ajuste positivo:** suma la cantidad;
    - **daño, vencimiento, consumo interno u otro:** resta la cantidad.
+   El formulario muestra el disponible del lote y traduce la cantidad escrita a presentaciones equivalentes (por ejemplo `250 TAB = 2 Cajas x100 + 5 Blísters x10`). Es una ayuda visual; el ajuste se sigue registrando en unidad base.
 4. Aplica el movimiento:
    - entrada: crea una nueva capa `lote_ingreso`, suma lote y stock, kardex `AJUSTE` positivo;
    - salida: consume las capas del lote, resta lote y stock, registra `lote_consumo` y kardex `AJUSTE` negativo.

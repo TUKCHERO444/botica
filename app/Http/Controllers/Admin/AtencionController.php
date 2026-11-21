@@ -330,7 +330,7 @@ class AtencionController extends Controller
 
     private function presentacionesDisponibles(bool $soloConStock = true)
     {
-        return ProductoPresentacion::with(['producto.unidadBase', 'producto.lotesVendibles', 'presentacion'])
+        return ProductoPresentacion::with(['producto.unidadBase', 'producto.lotesVendibles', 'producto.presentaciones.presentacion', 'presentacion'])
             ->where('activo', true)
             ->whereHas('producto', function ($q) use ($soloConStock) {
                 $q->where('estado', 1);

@@ -45,12 +45,16 @@ El buscador de presentaciones (`GET /admin/ventas/presentaciones/search`) solo o
 Cada resultado devuelve, además de `stock` (físico):
 
 - `stock_vendible` / `stock_vendible_formateado`;
+- `stock_desglose`: desglose del stock vendible en presentaciones equivalentes (por ejemplo `4 Cajas x100 + 9 Blísters x10 + 9 Tabletas`);
+- `stock_equivalencias`: máximo vendible y sobrante por cada presentación;
+- `presentacion_equivalencia`: texto de la presentación consultada (por ejemplo `4 Cajas x100 (sobran 99 TAB)`);
+- `presentacion_maximo_formateado` y `presentacion_sobrante_formateado`;
 - `stock_minimo` / `stock_minimo_formateado`;
 - `dias_para_vencer` del lote más próximo;
 - `alerta_stock` (`Bajo mínimo` o `Sin stock vendible`);
 - `alerta_vencimiento` (`Vence en N días` dentro de los próximos 30).
 
-La UI muestra esos avisos en el desplegable y en el chip del producto seleccionado. Al cambiar la cantidad, la fila advierte si la línea supera el stock vendible o si dejará el producto por debajo del mínimo. Son advertencias visuales: la validación que bloquea sigue siendo la del servidor (`StoreVentaRequest` + `consumir`).
+La UI muestra esos avisos en el desplegable y en el chip del producto seleccionado. Cada presentación indica cuánto se puede vender realmente: con 499 tabletas, `Caja x100` muestra `4 Cajas x100 (sobran 99 TAB)`, no 499 cajas. Al cambiar la cantidad, la fila agrega la conversión a unidad base (`2 × 100 = 200 TAB`) y advierte si la línea supera el stock vendible o si dejará el producto por debajo del mínimo. Las presentaciones son **equivalentes del mismo stock**, nunca existencias separadas que se sumen. Son advertencias visuales: la validación que bloquea sigue siendo la del servidor (`StoreVentaRequest` + `consumir`).
 
 ### Registro de pago
 

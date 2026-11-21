@@ -11,7 +11,7 @@ class KardexController extends Controller
 {
     public function index()
     {
-        $query = KardexMovimiento::with('producto', 'usuario')
+        $query = KardexMovimiento::with('producto.unidadBase', 'producto.presentaciones.presentacion', 'usuario')
             ->orderBy('created_at', 'desc');
 
         if ($productoId = request('producto_id')) {
@@ -43,6 +43,8 @@ class KardexController extends Controller
 
     public function porProducto(Producto $producto)
     {
+        $producto->loadMissing('unidadBase', 'presentaciones.presentacion');
+
         $movimientos = KardexMovimiento::with('usuario')
             ->where('producto_id', $producto->id_producto)
             ->orderBy('created_at', 'desc')

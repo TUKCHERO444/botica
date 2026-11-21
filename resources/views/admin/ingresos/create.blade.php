@@ -111,12 +111,15 @@
                             <option value="{{ $pp->id_producto_presentacion }}"
                                 data-stock="{{ $pp->producto->stock_formateado }}"
                                 data-paso="{{ \App\Helpers\CantidadHelper::formatear($pp->paso) }}"
+                                data-factor="{{ \App\Helpers\CantidadHelper::formatear($pp->factor) }}"
+                                data-unidad="{{ $pp->producto->unidadBase?->codigo }}"
                                 data-precio-venta="{{ number_format((float) $pp->precio_venta, 2, '.', '') }}">
                                 {{ $pp->producto->nombre }} — {{ $pp->nombre_completo }} (Stock: {{ $pp->producto->stock_formateado }})
                             </option>
                         @endforeach
                     </select>
                     <span class="producto-info text-[10px] text-stone-400">Stock actual: <span class="producto-stock-actual">0</span></span>
+                    <span class="producto-conversion text-[10px] text-stone-500 block mt-0.5 hidden"></span>
                 </div>
                 <div class="sm:col-span-2">
                     <label class="block text-xs font-medium text-stone-600 mb-1">Cantidad <span class="text-red-500">*</span></label>

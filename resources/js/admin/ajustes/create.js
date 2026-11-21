@@ -1,3 +1,5 @@
+import { desglosarCantidad, formatearCantidad } from '../presentacion-stock.js';
+
 function initAjusteForm() {
   const container = document.getElementById('lotes-container');
   const btnAgregar = document.getElementById('agregar-lote');
@@ -66,8 +68,70 @@ function initAjusteForm() {
   }
 
   function configurar(row) {
-    row.querySelector('.lote-select')?.addEventListener('change', actualizarTotal);
-    row.querySelector('.lote-cantidad')?.addEventListener('input', actualizarTotal);
+    const select = row.querySelector('.lote-select');
+    const cantidad = row.querySelector('.lote-cantidad');
+    const info = row.querySelector('.lote-info');
+    const equivalencia = row.querySelector('.lote-equivalencia');
+
+    function actualizarInfo() {
+      const option = select?.options[select.selectedIndex];
+
+      if (!option || !option.value) {
+        if (info) {
+          info.textContent = '';
+          info.classList.add('hidden');
+        }
+        if (equivalencia) {
+          equivalencia.textContent = '';
+          equivalencia.classList.add('hidden');
+        }
+        return;
+      }
+
+      const unidad = option.dataset.unidad || '';
+      const disponible = parseFloat(option.dataset.disponible || '0') || 0;
+      const desglose = option.dataset.desglose || '';
+
+      if (info) {
+        info.textContent = 'Disponible en el lote: ' + formatearCantidad(disponible)
+          + (unidad ? ' ' + unidad : '')
+          + (desglose ? ' · ' + desglose : '');
+        info.classList.remove('hidden');
+      }
+
+      if (equivalencia) {
+        const cantidadActual = parseFloat(cantidad?.value || '0') || 0;
+
+        if (cantidadActual > 0) {
+          let presentaciones = [];
+
+          try {
+            presentaciones = JSON.parse(option.dataset.presentaciones || '[]');
+          } catch (e) {
+            presentaciones = [];
+          }
+
+          const texto = desglosarCantidad(cantidadActual, presentaciones, unidad);
+
+          equivalencia.textContent = 'Cantidad: ' + formatearCantidad(cantidadActual)
+            + (unidad ? ' ' + unidad : '')
+            + (texto ? ' = ' + texto : '');
+          equivalencia.classList.remove('hidden');
+        } else {
+          equivalencia.textContent = '';
+          equivalencia.classList.add('hidden');
+        }
+      }
+    }
+
+    select?.addEventListener('change', () => {
+      actualizarTotal();
+      actualizarInfo();
+    });
+    cantidad?.addEventListener('input', () => {
+      actualizarTotal();
+      actualizarInfo();
+    });
 
     row.querySelector('.eliminar-lote')?.addEventListener('click', () => {
       if (container.querySelectorAll('.lote-row').length > 1) {
@@ -75,6 +139,8 @@ function initAjusteForm() {
         actualizarTotal();
       }
     });
+
+    actualizarInfo();
   }
 
   btnAgregar.addEventListener('click', () => {

@@ -72,6 +72,11 @@
                             @php($vendible = $p->lotes_count > 0 ? (float) $p->stock_vendible_calc : (float) $p->stock)
                             <div class="flex flex-col gap-1">
                                 <span>{{ $p->stock_formateado }}</span>
+                                @if ((float) $p->stock > 0 && $p->presentaciones->contains(fn ($pp) => (float) $pp->factor > 1))
+                                    <span class="text-[11px] text-stone-400">
+                                        Equivale a: {{ \App\Helpers\PresentacionStockHelper::desglosar($p, (string) $p->stock)['desglose'] }}
+                                    </span>
+                                @endif
                                 @if ($vendible < (float) $p->stock)
                                     <span class="text-[11px] text-stone-400">
                                         Vendible: {{ \App\Helpers\CantidadHelper::formatear($vendible) }}

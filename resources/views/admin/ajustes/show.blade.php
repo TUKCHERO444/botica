@@ -61,7 +61,13 @@
                             <td class="px-3 py-2 font-mono text-stone-600">{{ $detalle->lote?->codigo_lote ?? '—' }}</td>
                             <td class="px-3 py-2 text-stone-600">{{ $detalle->lote?->fecha_vencimiento?->format('d/m/Y') ?? '—' }}</td>
                             <td class="px-3 py-2 text-center font-medium {{ (float) $detalle->cantidad_base >= 0 ? 'text-emerald-700' : 'text-red-600' }}">
-                                {{ (float) $detalle->cantidad_base > 0 ? '+' : '' }}{{ \App\Helpers\CantidadHelper::formatear($detalle->cantidad_base) }}
+                                <div>{{ (float) $detalle->cantidad_base > 0 ? '+' : '' }}{{ \App\Helpers\CantidadHelper::formatear($detalle->cantidad_base) }}</div>
+                                @if ((float) $detalle->cantidad_base !== 0.0
+                                    && $detalle->producto?->presentaciones?->contains(fn ($pp) => (float) $pp->factor > 1))
+                                    <div class="text-[11px] font-normal text-stone-400">
+                                        {{ \App\Helpers\PresentacionStockHelper::desglosar($detalle->producto, (string) abs((float) $detalle->cantidad_base))['desglose'] }}
+                                    </div>
+                                @endif
                             </td>
                             <td class="px-3 py-2 text-stone-600 text-right">S/ {{ number_format((float) $detalle->costo_unitario_base, 4) }}</td>
                             <td class="px-3 py-2 text-stone-600 text-right font-medium">S/ {{ number_format((float) $detalle->costo_total, 2) }}</td>
