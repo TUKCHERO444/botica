@@ -1,6 +1,6 @@
 # Documentación — Botica
 
-> **Última actualización del índice:** 21/11/2026
+> **Última actualización del índice:** 23/11/2026
 
 Esta carpeta contiene las especificaciones y registros de decisiones del sistema. Antes de modificar un módulo, leer su documento y contrastarlo con el código: algunos documentos son **históricos** y describen lógica que ya fue eliminada.
 
@@ -62,6 +62,7 @@ Esta carpeta contiene las especificaciones y registros de decisiones del sistema
 | [`plan-lotes-fefo-v2.md`](plan-lotes-fefo-v2.md) | Rediseño de lotes, vencimientos y FEFO | Implementado parcialmente (núcleo operativo; reportes de costo y backfill pendientes) |
 | [`plan-mejora-compras-proveedores.md`](plan-mejora-compras-proveedores.md) | Mejora de compras a proveedores (contraste carwash → botica) | Fases 1-7 implementadas |
 | [`plan-fase-8-mejoras.md`](plan-fase-8-mejoras.md) | Backlog post fase 7 ordenado por dificultad | Propuesta para revisión |
+| [`plan-listado-diario-ventas-atenciones.md`](plan-listado-diario-ventas-atenciones.md) | Listado diario por usuario + historial con filtros en ventas y atenciones | Implementado (sin cambios de BD) |
 | [`plan-inventario-inicial-d1.md`](plan-inventario-inicial-d1.md) | D1/D2: inventario inicial y migración de existencias | D1.1–D1.4 y D2 núcleo implementados; piloto y legados pendientes |
 | [`flujo-productos-compras-inventario-ventas.md`](flujo-productos-compras-inventario-ventas.md) | Documento de referencia externo del sistema carwash | Referencia (no especificación) |
 | [`plan-eliminacion-logica-lotes.md`](plan-eliminacion-logica-lotes.md) | Decisión histórica: eliminar lotes/FEFO | Histórico (reemplazado por `plan-lotes-fefo-v2.md`) |

@@ -22,6 +22,8 @@ export default defineConfig({
                 'resources/js/admin/productos/edit.js',
                 'resources/js/admin/ventas/index.js',
                 'resources/js/admin/ventas/create.js',
+                'resources/js/admin/ventas/historial.js',
+                'resources/js/admin/atenciones/historial.js',
                 'resources/js/admin/sliders/index.js',
                 'resources/js/admin/banners/index.js',
                 'resources/js/admin/portada-categorias/index.js',

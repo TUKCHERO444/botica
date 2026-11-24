@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Helpers\CantidadHelper;
 use App\Http\Controllers\Admin\Traits\Audita;
 use App\Http\Controllers\Admin\Traits\CacheaPanel;
+use App\Http\Controllers\Admin\Traits\FiltraHistorial;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AnularAtencionRequest;
 use App\Http\Requests\Admin\StoreAtencionRequest;
@@ -16,6 +17,7 @@ use App\Models\MetodoPago;
 use App\Models\Pago;
 use App\Models\ProductoPresentacion;
 use App\Models\Servicio;
+use App\Models\User;
 use App\Services\AnulacionAtencionService;
 use App\Services\CajaService;
 use App\Services\InventarioService;
@@ -25,7 +27,7 @@ use Illuminate\Support\Facades\DB;
 
 class AtencionController extends Controller
 {
-    use Audita, CacheaPanel;
+    use Audita, CacheaPanel, FiltraHistorial;
 
     public function __construct(
         private readonly InventarioService $inventario,
@@ -43,21 +45,63 @@ class AtencionController extends Controller
 
     public function index()
     {
-        if (request()->ajax()) {
-            return $this->getIndex('atenciones', function () {
-                $atenciones = Atencion::with('cliente', 'user', 'productos', 'servicios')
-                    ->orderBy('id_atencion', 'desc')->paginate(10)->withQueryString();
-                $cajaAbierta = Caja::abierta()->exists();
+        // Vista del día: solo las atenciones del usuario autenticado registradas hoy.
+        $atenciones = Atencion::with('cliente', 'user')
+            ->withCount(['productos', 'servicios'])
+            ->where('user_id', auth()->id())
+            ->delDia()
+            ->orderByDesc('id_atencion')
+            ->paginate(10)
+            ->withQueryString();
 
-                return view('admin.atenciones.index', compact('atenciones', 'cajaAbierta'))->render();
-            });
+        $resumen = Atencion::where('user_id', auth()->id())
+            ->delDia()
+            ->where('estado', Atencion::ESTADO_CONFIRMADA)
+            ->selectRaw('count(*) as cantidad, coalesce(sum(total), 0) as total')
+            ->first();
+
+        $cajaAbierta = Caja::abierta()->exists();
+        $hoy = today();
+        $datos = compact('atenciones', 'resumen', 'cajaAbierta', 'hoy');
+
+        if (request()->ajax()) {
+            return $this->getIndex('atenciones', fn () => view('admin.atenciones.index', $datos)->render());
         }
 
-        $atenciones = Atencion::with('cliente', 'user', 'productos', 'servicios')
-            ->orderBy('id_atencion', 'desc')->paginate(10)->withQueryString();
-        $cajaAbierta = Caja::abierta()->exists();
+        return view('admin.atenciones.full', $datos);
+    }
 
-        return view('admin.atenciones.full', compact('atenciones', 'cajaAbierta'));
+    public function historial(Request $request)
+    {
+        [$fecha, $desde, $hasta] = $this->rangoFechas($request);
+
+        $base = Atencion::query()
+            ->deUsuario($request->integer('user_id') ?: null)
+            ->entreFechas($fecha, $desde, $hasta)
+            ->deEstado($request->get('estado'))
+            ->buscar($request->get('q'));
+
+        $atenciones = (clone $base)
+            ->with('cliente', 'user')
+            ->withCount(['productos', 'servicios'])
+            ->orderByDesc('id_atencion')
+            ->paginate(10)
+            ->withQueryString();
+
+        $resumen = (clone $base)
+            ->where('estado', Atencion::ESTADO_CONFIRMADA)
+            ->selectRaw('count(*) as cantidad, coalesce(sum(total), 0) as total')
+            ->first();
+
+        $usuarios = User::orderBy('name')->get(['id', 'name']);
+        $filtros = compact('fecha', 'desde', 'hasta');
+        $datos = compact('atenciones', 'resumen', 'usuarios', 'filtros');
+
+        if ($request->ajax()) {
+            return $this->getIndex('atenciones', fn () => view('admin.atenciones.historial', $datos)->render());
+        }
+
+        return view('admin.atenciones.historial-full', $datos);
     }
 
     public function show(Atencion $atencione)

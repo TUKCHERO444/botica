@@ -1,7 +1,7 @@
 # Módulo de atenciones
 
-> **Última actualización:** 21/11/2026
-> **Estado:** atención confirmada + anulación con motivo + ticket imprimible.
+> **Última actualización:** 23/11/2026
+> **Estado:** atención confirmada + anulación con motivo + ticket imprimible + listado diario por usuario e historial con filtros.
 > **Referencias:** `modulo-ventas.md`, `modulo-metodos-pago.md`, `modulo-caja.md`, `kardex-append-only.md`.
 
 ---
@@ -19,6 +19,15 @@ atencion
   ├─ kardex ATENCION + REVERSION
   └─ caja: ingreso por método + egreso compensatorio
 ```
+
+### 1.1 Listado del día e historial
+
+- `/admin/atenciones` muestra **solo las atenciones de hoy** (`created_at` del día en `America/Lima`) registradas por el usuario autenticado (`user_id`). Incluye sus anuladas y muestra contador/total de confirmadas.
+- `/admin/atenciones/historial` conserva el **listado total** y agrega filtros: `fecha` exacta, `desde`/`hasta`, `user_id`, `estado` y búsqueda por correlativo/cliente. Sin filtros equivale al listado histórico anterior.
+- El paso de "hoy" al historial es **automático** al cambiar el día; sin job ni cambios de esquema.
+- `Atencion` expone los scopes `delDia`, `deUsuario`, `entreFechas`, `deEstado` y `buscar` (`app/Models/Atencion.php`). El listado usa `withCount(['productos', 'servicios'])`.
+- Ambas vistas comparten `admin/atenciones/_tabla.blade.php`; paginación de 10 con `withQueryString()`.
+- Detalle y pruebas: [`plan-listado-diario-ventas-atenciones.md`](plan-listado-diario-ventas-atenciones.md).
 
 ---
 

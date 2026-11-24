@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class Venta extends Model
@@ -83,6 +84,63 @@ class Venta extends Model
     public function scopeConfirmadas($query)
     {
         return $query->where('estado', self::ESTADO_CONFIRMADA);
+    }
+
+    /**
+     * Registros creados hoy (zona horaria de la aplicación, America/Lima).
+     */
+    public function scopeDelDia($query)
+    {
+        return $query
+            ->where('created_at', '>=', today()->startOfDay())
+            ->where('created_at', '<', today()->addDay()->startOfDay());
+    }
+
+    public function scopeDeUsuario($query, ?int $userId)
+    {
+        return $query->when($userId, fn ($q) => $q->where('user_id', $userId));
+    }
+
+    /**
+     * Filtro del historial: una fecha exacta manda sobre el rango.
+     */
+    public function scopeEntreFechas($query, ?Carbon $fecha = null, ?Carbon $desde = null, ?Carbon $hasta = null)
+    {
+        if ($fecha) {
+            return $query
+                ->where('created_at', '>=', $fecha->copy()->startOfDay())
+                ->where('created_at', '<', $fecha->copy()->addDay()->startOfDay());
+        }
+
+        return $query
+            ->when($desde, fn ($q) => $q->where('created_at', '>=', $desde->copy()->startOfDay()))
+            ->when($hasta, fn ($q) => $q->where('created_at', '<', $hasta->copy()->addDay()->startOfDay()));
+    }
+
+    public function scopeDeEstado($query, ?string $estado)
+    {
+        return $query->when(
+            in_array($estado, [self::ESTADO_CONFIRMADA, self::ESTADO_ANULADA], true),
+            fn ($q) => $q->where('estado', $estado)
+        );
+    }
+
+    public function scopeBuscar($query, ?string $texto)
+    {
+        $texto = trim((string) $texto);
+
+        if (mb_strlen($texto) < 2) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($texto) {
+            $q->where('correlativo', 'like', "%{$texto}%")
+                ->orWhereHas('cliente', function ($c) use ($texto) {
+                    $c->where('nombre', 'like', "%{$texto}%")
+                        ->orWhere('apellido_paterno', 'like', "%{$texto}%")
+                        ->orWhere('apellido_materno', 'like', "%{$texto}%");
+                });
+        });
     }
 
     public function getEstadoLabelAttribute(): string

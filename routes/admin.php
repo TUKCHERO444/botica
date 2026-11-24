@@ -176,6 +176,10 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         ->middleware('permission:ventas')
         ->name('admin.ventas.anular');
 
+    Route::get('ventas/historial', [VentaController::class, 'historial'])
+        ->middleware('permission:ventas')
+        ->name('admin.ventas.historial');
+
     Route::resource('ventas', VentaController::class)->names([
         'index' => 'admin.ventas.index', 'create' => 'admin.ventas.create',
         'store' => 'admin.ventas.store', 'show' => 'admin.ventas.show',
@@ -194,6 +198,10 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::post('atenciones/{atencione}/anular', [AtencionController::class, 'anular'])
         ->middleware('permission:atenciones')
         ->name('admin.atenciones.anular');
+
+    Route::get('atenciones/historial', [AtencionController::class, 'historial'])
+        ->middleware('permission:atenciones')
+        ->name('admin.atenciones.historial');
 
     Route::resource('atenciones', AtencionController::class)->names([
         'index' => 'admin.atenciones.index', 'create' => 'admin.atenciones.create',

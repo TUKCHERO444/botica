@@ -1,6 +1,6 @@
 # Mapeo de módulos, tablas y paginación
 
-> **Fecha:** 20/11/2026
+> **Fecha:** 23/11/2026
 > **Objetivo:** identificar qué listados del panel no tienen paginación y estandarizar un manejador global.
 > **Regla inicial:** listados administrativos de **10 registros por página**; los listados técnicos existentes (auditoría, kardex, lotes) quedan en 50 hasta revisarlos.
 
@@ -53,7 +53,9 @@ Productos → ProductoController@index → paginate(10)
 | Inventario inicial | `/admin/inventario-inicial` | `inventario_inicial`, detalle | **Sí, 10** | Implementado |
 | Clientes | `/admin/clientes` | `cliente` | **Sí, 10** | Implementado |
 | Ventas | `/admin/ventas` | `venta`, `detalle_venta` | **Sí, 10** | Implementado |
+| Historial de ventas | `/admin/ventas/historial` | `venta`, `detalle_venta` | **Sí, 10** | Implementado |
 | Atenciones | `/admin/atenciones` | `atencion`, `atencion_producto`, `atencion_servicio` | **Sí, 10** | Implementado |
+| Historial de atenciones | `/admin/atenciones/historial` | `atencion`, `atencion_producto`, `atencion_servicio` | **Sí, 10** | Implementado |
 | Servicios | `/admin/servicios` | `servicio` | **Sí, 10** | Implementado |
 | Proveedores | `/admin/proveedores` | `proveedor` | **Sí, 10** | Implementado |
 | Usuarios | `/admin/usuarios` | `users`, `model_has_roles` | **Sí, 10** | Implementado |

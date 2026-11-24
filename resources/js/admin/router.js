@@ -33,9 +33,14 @@ const AdminRouter = {
     },
 
     highlightActiveLink() {
-        document.querySelectorAll('[data-panel]').forEach((link) => {
+        const current = window.location.pathname.replace(/\/+$/, '');
+
+        document.querySelectorAll('#sidebar [data-panel]').forEach((link) => {
             link.classList.remove('bg-emerald-700', 'text-white');
-            if (link.getAttribute('data-panel') === window.location.pathname) {
+
+            const target = (link.getAttribute('data-panel') || '').split('?')[0].replace(/\/+$/, '');
+
+            if (target && (current === target || current.startsWith(target + '/'))) {
                 link.classList.add('bg-emerald-700', 'text-white');
             }
         });

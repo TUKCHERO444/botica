@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Helpers\CantidadHelper;
 use App\Http\Controllers\Admin\Traits\Audita;
 use App\Http\Controllers\Admin\Traits\CacheaPanel;
+use App\Http\Controllers\Admin\Traits\FiltraHistorial;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AnularVentaRequest;
 use App\Http\Requests\Admin\StoreVentaRequest;
@@ -14,6 +15,7 @@ use App\Models\LoteConsumo;
 use App\Models\MetodoPago;
 use App\Models\Pago;
 use App\Models\ProductoPresentacion;
+use App\Models\User;
 use App\Models\Venta;
 use App\Services\AnulacionVentaService;
 use App\Services\CajaService;
@@ -24,7 +26,7 @@ use Illuminate\Support\Facades\DB;
 
 class VentaController extends Controller
 {
-    use Audita, CacheaPanel;
+    use Audita, CacheaPanel, FiltraHistorial;
 
     public function __construct(
         private readonly InventarioService $inventario,
@@ -42,19 +44,61 @@ class VentaController extends Controller
 
     public function index()
     {
-        if (request()->ajax()) {
-            return $this->getIndex('ventas', function () {
-                $ventas = Venta::with('cliente', 'user')->orderBy('id_venta', 'desc')->paginate(10)->withQueryString();
-                $cajaAbierta = Caja::abierta()->exists();
+        // Vista del día: solo las ventas del usuario autenticado registradas hoy.
+        $ventas = Venta::with('cliente', 'user')
+            ->where('user_id', auth()->id())
+            ->delDia()
+            ->orderByDesc('id_venta')
+            ->paginate(10)
+            ->withQueryString();
 
-                return view('admin.ventas.index', compact('ventas', 'cajaAbierta'))->render();
-            });
+        $resumen = Venta::where('user_id', auth()->id())
+            ->delDia()
+            ->where('estado', Venta::ESTADO_CONFIRMADA)
+            ->selectRaw('count(*) as cantidad, coalesce(sum(total), 0) as total')
+            ->first();
+
+        $cajaAbierta = Caja::abierta()->exists();
+        $hoy = today();
+        $datos = compact('ventas', 'resumen', 'cajaAbierta', 'hoy');
+
+        if (request()->ajax()) {
+            return $this->getIndex('ventas', fn () => view('admin.ventas.index', $datos)->render());
         }
 
-        $ventas = Venta::with('cliente', 'user')->orderBy('id_venta', 'desc')->paginate(10)->withQueryString();
-        $cajaAbierta = Caja::abierta()->exists();
+        return view('admin.ventas.full', $datos);
+    }
 
-        return view('admin.ventas.full', compact('ventas', 'cajaAbierta'));
+    public function historial(Request $request)
+    {
+        [$fecha, $desde, $hasta] = $this->rangoFechas($request);
+
+        $base = Venta::query()
+            ->deUsuario($request->integer('user_id') ?: null)
+            ->entreFechas($fecha, $desde, $hasta)
+            ->deEstado($request->get('estado'))
+            ->buscar($request->get('q'));
+
+        $ventas = (clone $base)
+            ->with('cliente', 'user')
+            ->orderByDesc('id_venta')
+            ->paginate(10)
+            ->withQueryString();
+
+        $resumen = (clone $base)
+            ->where('estado', Venta::ESTADO_CONFIRMADA)
+            ->selectRaw('count(*) as cantidad, coalesce(sum(total), 0) as total')
+            ->first();
+
+        $usuarios = User::orderBy('name')->get(['id', 'name']);
+        $filtros = compact('fecha', 'desde', 'hasta');
+        $datos = compact('ventas', 'resumen', 'usuarios', 'filtros');
+
+        if ($request->ajax()) {
+            return $this->getIndex('ventas', fn () => view('admin.ventas.historial', $datos)->render());
+        }
+
+        return view('admin.ventas.historial-full', $datos);
     }
 
     public function show(Venta $venta)

@@ -1,7 +1,7 @@
 # Módulo de ventas
 
-> **Última actualización:** 20/11/2026
-> **Estado:** venta confirmada + anulación con motivo + pago obligatorio con desglose (tarea B1 del `plan-fase-8-mejoras.md`).
+> **Última actualización:** 23/11/2026
+> **Estado:** venta confirmada + anulación con motivo + pago obligatorio con desglose (tarea B1 del `plan-fase-8-mejoras.md`) + listado diario por usuario e historial con filtros.
 > **Referencias:** `flujo-inventario-lotes-fefo.md`, `modulo-caja.md`, `kardex-append-only.md`.
 
 ---
@@ -18,6 +18,15 @@ venta
   ├─ kardex VENTA + REVERSION
   └─ caja: ingreso + egreso compensatorio
 ```
+
+### 1.1 Listado del día e historial
+
+- `/admin/ventas` muestra **solo las ventas de hoy** (`created_at` del día en `America/Lima`) registradas por el usuario autenticado (`user_id`). Incluye sus anuladas y muestra contador/total de confirmadas.
+- `/admin/ventas/historial` conserva el **listado total** y agrega filtros: `fecha` exacta, `desde`/`hasta`, `user_id`, `estado` y búsqueda por correlativo/cliente. Sin filtros equivale al listado histórico anterior.
+- El paso de "hoy" al historial es **automático**: al cambiar el día, el filtro de fecha deja fuera los registros anteriores. No hay job, tabla de archivo ni columnas nuevas.
+- `Venta` expone los scopes `delDia`, `deUsuario`, `entreFechas`, `deEstado` y `buscar` (`app/Models/Venta.php`).
+- Ambas vistas comparten `admin/ventas/_tabla.blade.php`; "Registrado por" y la columna de fecha/hora aparecen en el historial. Paginación de 10 con `withQueryString()`.
+- Detalle y pruebas: [`plan-listado-diario-ventas-atenciones.md`](plan-listado-diario-ventas-atenciones.md).
 
 ---
 
